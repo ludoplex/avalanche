@@ -36,8 +36,7 @@ class AvalancheDatasetTests(unittest.TestCase):
 
         # compute expected indices after all permutations
         current_indices = range(d_sz)
-        true_indices = []
-        true_indices.append(list(current_indices))
+        true_indices = [list(current_indices)]
         for idx in range(dataset_hierarchy_depth):
             current_indices = [current_indices[x] for x in perms[idx]]
             true_indices.append(current_indices)
@@ -267,7 +266,7 @@ class LazyIndicesTests(unittest.TestCase):
         self.assertEqual(len(eager) * 2, len(li))
 
         li = LazyIndices(eager, offset=7)
-        self.assertListEqual(list([el + 7 for el in eager]), list(li))
+        self.assertListEqual([el + 7 for el in eager], list(li))
         self.assertEqual(len(eager), len(li))
 
     def test_recursion(self):
@@ -278,8 +277,6 @@ class LazyIndicesTests(unittest.TestCase):
             li = LazyIndices(li, eager, offset=0)
 
         self.assertEqual(len(eager) * (i + 2), len(li))
-        for el in li:  # keep this to check recursion error
-            pass
 
 
 if __name__ == "__main__":

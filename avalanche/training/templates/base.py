@@ -212,17 +212,14 @@ class BaseTemplate(BaseStrategyProtocol[TExperienceType]):
 
         TODO: we probably need a better way to do this.
         """
-        # save each layer's training mode, to restore it later
-        _prev_model_training_modes = {}
-        for name, layer in self.model.named_modules():
-            _prev_model_training_modes[name] = layer.training
-
-        _prev_state = {
+        _prev_model_training_modes = {
+            name: layer.training for name, layer in self.model.named_modules()
+        }
+        return {
             "experience": self.experience,
             "is_training": self.is_training,
             "model_training_mode": _prev_model_training_modes,
         }
-        return _prev_state
 
     def _load_train_state(self, prev_state):
         # restore train-state variables and training mode.
@@ -278,12 +275,12 @@ class BaseTemplate(BaseStrategyProtocol[TExperienceType]):
         if not DistributedHelper.is_distributed:
             return True
 
-        unsupported_plugins = []
-        for plugin in self.plugins:
-            if not getattr(plugin, "supports_distributed", False):
-                unsupported_plugins.append(plugin)
-
-        if len(unsupported_plugins) > 0:
+        unsupported_plugins = [
+            plugin
+            for plugin in self.plugins
+            if not getattr(plugin, "supports_distributed", False)
+        ]
+        if unsupported_plugins:
             warnings.warn(
                 "You are using plugins that are not compatible"
                 "with distributed training:"
@@ -291,7 +288,7 @@ class BaseTemplate(BaseStrategyProtocol[TExperienceType]):
             for plugin in unsupported_plugins:
                 print(type(plugin), file=sys.stderr)
 
-        return len(unsupported_plugins) == 0
+        return not unsupported_plugins
 
     #########################################################
     # Plugin Triggers                                       #
@@ -344,10 +341,7 @@ def _group_experiences_by_stream(
 def _experiences_parameter_as_iterable(
     experiences: Union[Iterable[TExperienceType], TExperienceType]
 ) -> Iterable[TExperienceType]:
-    if isinstance(experiences, Iterable):
-        return experiences
-    else:
-        return [experiences]
+    return experiences if isinstance(experiences, Iterable) else [experiences]
 
 
 __all__ = ["BaseTemplate"]

@@ -138,7 +138,7 @@ def create_multi_dataset_generic_benchmark(
                 "complete_test_set_only is True"
             )
 
-    stream_definitions: Dict[str, Tuple[Iterable[ClassificationDataset]]] = dict()
+    stream_definitions: Dict[str, Tuple[Iterable[ClassificationDataset]]] = {}
 
     for stream_name, dataset_list in input_streams.items():
         initial_transform_group = "train"
@@ -174,12 +174,11 @@ def _adapt_lazy_stream(generator, transform_groups, initial_transform_group):
     """
 
     for dataset in generator:
-        dataset = make_classification_dataset(
+        yield make_classification_dataset(
             dataset,
             transform_groups=transform_groups,
             initial_transform_group=initial_transform_group,
         )
-        yield dataset
 
 
 class LazyStreamDefinition(NamedTuple):
@@ -334,7 +333,7 @@ def create_lazy_generic_benchmark(
             # Task label(s) for each experience
             Iterable[Union[int, Iterable[int]]],
         ],
-    ] = dict()
+    ] = {}
 
     for stream_name, (
         generator,
@@ -457,7 +456,7 @@ def create_generic_benchmark_from_filelists(
     if other_streams_file_lists is not None:
         input_streams = {**input_streams, **other_streams_file_lists}
 
-    stream_definitions: Dict[str, Sequence[ClassificationDataset]] = dict()
+    stream_definitions: Dict[str, Sequence[ClassificationDataset]] = {}
 
     for stream_name, file_lists in input_streams.items():
         stream_datasets: List[ClassificationDataset] = []
@@ -583,7 +582,7 @@ def create_generic_benchmark_from_paths(
     if other_streams_lists_of_files is not None:
         input_streams = {**input_streams, **other_streams_lists_of_files}
 
-    stream_definitions: Dict[str, Sequence[ClassificationDataset]] = dict()
+    stream_definitions: Dict[str, Sequence[ClassificationDataset]] = {}
 
     for stream_name, lists_of_files in input_streams.items():
         stream_datasets: List[ClassificationDataset] = []
@@ -706,17 +705,15 @@ def create_generic_benchmark_from_tensor_lists(
     if other_streams_tensors is not None:
         input_streams = {**input_streams, **other_streams_tensors}
 
-    stream_definitions: Dict[str, Sequence[ClassificationDataset]] = dict()
+    stream_definitions: Dict[str, Sequence[ClassificationDataset]] = {}
 
     for stream_name, list_of_exps_tensors in input_streams.items():
-        stream_datasets: List[ClassificationDataset] = []
-        for exp_id, exp_tensors in enumerate(list_of_exps_tensors):
-            stream_datasets.append(
-                make_tensor_classification_dataset(
-                    *exp_tensors, task_labels=task_labels[exp_id]
-                )
+        stream_datasets: List[ClassificationDataset] = [
+            make_tensor_classification_dataset(
+                *exp_tensors, task_labels=task_labels[exp_id]
             )
-
+            for exp_id, exp_tensors in enumerate(list_of_exps_tensors)
+        ]
         stream_definitions[stream_name] = stream_datasets
 
     return create_multi_dataset_generic_benchmark(

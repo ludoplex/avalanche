@@ -268,10 +268,9 @@ class _LazyClassesInDetectionExps(Sequence[Optional[Set[int]]]):
 
     def __getitem__(self, exp_id: Union[int, slice]) -> LazyClassesInExpsRet:
         indexing_collate = _LazyClassesInDetectionExps._slice_collate
-        result = manage_advanced_indexing(
+        return manage_advanced_indexing(
             exp_id, self._get_single_exp_classes, len(self), indexing_collate
         )
-        return result
 
     def __str__(self):
         return "[" + ", ".join([str(self[idx]) for idx in range(len(self))]) + "]"

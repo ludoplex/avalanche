@@ -123,6 +123,7 @@ def main(cuda: int):
     )
 
     start_time = time.time()
+    n_to_show = 3
     for i, (ffcv_batch, torch_batch) in enumerate(
         zip(ffcv_data_loader, pytorch_loader)
     ):
@@ -130,7 +131,6 @@ def main(cuda: int):
         for element in ffcv_batch:
             print(element.shape, "vs", element.shape)
 
-        n_to_show = 3
         for idx in range(n_to_show):
             as_img_ffcv = to_pil_image(ffcv_batch[0][idx])
             as_img_torch = to_pil_image(torch_batch[0][idx])
@@ -185,9 +185,6 @@ def main(cuda: int):
 
         # Keep this break if it is sufficient to analyze only the first batch
         break
-
-        # Print batch separator
-        print("." * 40)
 
     end_time = time.time()
     print("Loop time:", end_time - start_time, "seconds")

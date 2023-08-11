@@ -12,8 +12,7 @@ if TYPE_CHECKING:
 
 def cycle(loader):
     while True:
-        for batch in loader:
-            yield batch
+        yield from loader
 
 
 def update_temp(model, grad, lr):

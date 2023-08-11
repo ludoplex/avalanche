@@ -127,10 +127,7 @@ class IcarlNet(Module):
         input_dims = output_dims
         output_dims = 16
 
-        # first stack of residual blocks, output is 16 x 32 x 32
-        layers_list = []
-        for _ in range(n):
-            layers_list.append(ResidualBlock(input_dims))
+        layers_list = [ResidualBlock(input_dims) for _ in range(n)]
         first_block = Sequential(*layers_list)
 
         input_dims = output_dims
@@ -138,8 +135,7 @@ class IcarlNet(Module):
 
         # second stack of residual blocks, output is 32 x 16 x 16
         layers_list = [ResidualBlock(input_dims, increase_dim=True)]
-        for _ in range(1, n):
-            layers_list.append(ResidualBlock(output_dims))
+        layers_list.extend(ResidualBlock(output_dims) for _ in range(1, n))
         second_block = Sequential(*layers_list)
 
         input_dims = output_dims
@@ -147,8 +143,7 @@ class IcarlNet(Module):
 
         # third stack of residual blocks, output is 64 x 8 x 8
         layers_list = [ResidualBlock(input_dims, increase_dim=True)]
-        for _ in range(1, n - 1):
-            layers_list.append(ResidualBlock(output_dims))
+        layers_list.extend(ResidualBlock(output_dims) for _ in range(1, n - 1))
         layers_list.append(ResidualBlock(output_dims, last=True))
         third_block = Sequential(*layers_list)
         final_pool = AdaptiveAvgPool2d(output_size=(1, 1))

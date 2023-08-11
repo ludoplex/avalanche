@@ -295,14 +295,14 @@ def make_classification_dataset(
     if is_supervised:
         data = SupervisedClassificationDataset(
             [dataset],
-            data_attributes=das if len(das) > 0 else None,
+            data_attributes=das if das else None,
             transform_groups=transform_gs,
             collate_fn=collate_fn,
         )
     else:
         data = ClassificationDataset(
             [dataset],
-            data_attributes=das if len(das) > 0 else None,
+            data_attributes=das if das else None,
             transform_groups=transform_gs,
             collate_fn=collate_fn,
         )
@@ -322,9 +322,7 @@ def _init_targets(
             targets = ConstantSequence(targets, len(dataset))
         elif len(targets) != len(dataset) and check_shape:
             raise ValueError(
-                "Invalid amount of target labels. It must be equal to the "
-                "number of patterns in the dataset. Got {}, expected "
-                "{}!".format(len(targets), len(dataset))
+                f"Invalid amount of target labels. It must be equal to the number of patterns in the dataset. Got {len(targets)}, expected {len(dataset)}!"
             )
         return DataAttribute(targets, "targets")
 
@@ -334,10 +332,7 @@ def _init_targets(
         if isinstance(targets, torch.Tensor):
             targets = targets.tolist()
 
-    if targets is None:
-        return None
-
-    return DataAttribute(targets, "targets")
+    return None if targets is None else DataAttribute(targets, "targets")
 
 
 @overload
@@ -560,7 +555,7 @@ def classification_subset(
         return SupervisedClassificationDataset(
             [dataset],
             indices=list(indices) if indices is not None else None,
-            data_attributes=das if len(das) > 0 else None,
+            data_attributes=das if das else None,
             transform_groups=transform_gs,
             frozen_transform_groups=frozen_transform_groups,
             collate_fn=collate_fn,
@@ -569,7 +564,7 @@ def classification_subset(
         return ClassificationDataset(
             [dataset],
             indices=list(indices) if indices is not None else None,
-            data_attributes=das if len(das) > 0 else None,
+            data_attributes=das if das else None,
             transform_groups=transform_gs,
             frozen_transform_groups=frozen_transform_groups,
             collate_fn=collate_fn,
@@ -654,7 +649,7 @@ def make_tensor_classification_dataset(
         patterns. In the future this function may become the function
         used in the data loading process, too.
     """
-    if len(dataset_tensors) < 1:
+    if not dataset_tensors:
         raise ValueError("At least one sequence must be passed")
 
     if targets is None:
@@ -680,25 +675,21 @@ def make_tensor_classification_dataset(
     if initial_transform_group is not None and isinstance(dataset, AvalancheDataset):
         dataset = dataset.with_transforms(initial_transform_group)
 
-    das = []
-    for d in [targets_data, task_labels_data]:
-        if d is not None:
-            das.append(d)
-
+    das = [d for d in [targets_data, task_labels_data] if d is not None]
     # Check if supervision data has been added
     is_supervised = targets_data is not None and task_labels_data is not None
 
     if is_supervised:
         return SupervisedClassificationDataset(
             [dataset],
-            data_attributes=das if len(das) > 0 else None,
+            data_attributes=das if das else None,
             transform_groups=transform_gs,
             collate_fn=collate_fn,
         )
     else:
         return ClassificationDataset(
             [dataset],
-            data_attributes=das if len(das) > 0 else None,
+            data_attributes=das if das else None,
             transform_groups=transform_gs,
             collate_fn=collate_fn,
         )
@@ -871,7 +862,7 @@ def concat_classification_datasets(
 
         dds.append(dd)
 
-    if len(dds) > 0:
+    if dds:
         transform_groups_obj = _init_transform_groups(
             transform_groups,
             transform,
@@ -1019,11 +1010,8 @@ def concat_classification_datasets_sequentially(
         # Hence, a list of size equal to the maximum class index is created
         # Only elements corresponding to the present classes are remapped
         class_mapping = [-1] * (max(dataset_classes) + 1)
-        j = 0
-        for i in dataset_classes:
+        for j, i in enumerate(dataset_classes):
             class_mapping[i] = new_classes[j]
-            j += 1
-
         a = classification_subset(train_set, class_mapping=class_mapping)
 
         # Create remapped datasets and append them to the final list

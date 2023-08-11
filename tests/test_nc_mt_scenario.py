@@ -332,10 +332,7 @@ class MultiTaskTests(unittest.TestCase):
         exp_classes_ref1 = [list(range(3)), list(range(7))]
         exp_classes_ref2 = [list(range(7)), list(range(3))]
 
-        self.assertTrue(
-            exp_classes_train == exp_classes_ref1
-            or exp_classes_train == exp_classes_ref2
-        )
+        self.assertTrue(exp_classes_train in [exp_classes_ref1, exp_classes_ref2])
 
         if exp_classes_train == exp_classes_ref1:
             self.assertTrue(exp_classes_test == exp_classes_ref1)

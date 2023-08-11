@@ -61,8 +61,7 @@ class SliceSequence(Sequence[TData], Generic[TData, TIntermediateData], ABC):
     def __iter__(self) -> Iterator[TData]:
         # Iter built on __getitem__ + __len__
         for i in range(len(self)):
-            el = self[i]
-            yield el
+            yield self[i]
 
     @overload
     def __getitem__(self, item: int) -> TData:
@@ -79,7 +78,7 @@ class SliceSequence(Sequence[TData], Generic[TData, TIntermediateData], ABC):
         if isinstance(item, (int, np.integer)):
             item = int(item)
             if item >= len(self):
-                raise IndexError("Sequence index out of bounds" + str(int(item)))
+                raise IndexError(f"Sequence index out of bounds{item}")
 
             curr_elem = item if self.slice_ids is None else self.slice_ids[item]
 
@@ -96,10 +95,7 @@ class SliceSequence(Sequence[TData], Generic[TData, TIntermediateData], ABC):
 
         :return: The number of elements in this sequence.
         """
-        if self.slice_ids is not None:
-            return len(self.slice_ids)
-        else:
-            return self._full_length()
+        return self._full_length() if self.slice_ids is None else len(self.slice_ids)
 
     def _forward_slice(
         self, *slices: Union[None, slice, Iterable[int]]
@@ -118,10 +114,7 @@ class SliceSequence(Sequence[TData], Generic[TData, TIntermediateData], ABC):
             new_indices = [indices[x] for x in slice_indices]
             indices = new_indices
 
-        if any_slice:
-            return indices
-        else:
-            return None  # No slicing
+        return indices if any_slice else None
 
     @abstractmethod
     def _full_length(self) -> int:
@@ -198,9 +191,7 @@ class SubSequence(
         return self._targets[element_idx]
 
     def _post_process_element(self, element: TMappableTargetType) -> TTargetType:
-        if self.converter is None:
-            return element  # type: ignore
-        return self.converter(element)
+        return element if self.converter is None else self.converter(element)
 
 
 class SubsetWithTargets(Generic[T_co, TTargetType], Subset[T_co]):
@@ -252,7 +243,7 @@ class SequenceDataset(IDatasetWithTargets[T_co, TTargetType]):
             means that the second sequence (usually containing the "y" values)
             will be used for the targets field.
         """
-        if len(sequences) < 1:
+        if not sequences:
             raise ValueError("At least one sequence must be passed")
 
         common_size = len(sequences[0])
@@ -293,7 +284,7 @@ def find_list_from_index(
 
     list_idx = bisect.bisect_right(cumulative_sizes, pattern_idx)
     if list_idx != 0:
-        pattern_idx = pattern_idx - cumulative_sizes[list_idx - 1]
+        pattern_idx -= cumulative_sizes[list_idx - 1]
 
     if pattern_idx >= list_sizes[list_idx]:
         raise ValueError("Index out of bounds, wrong max_size parameter")
@@ -335,10 +326,7 @@ def manage_advanced_indexing(
         single_element = single_element_getter(int(single_idx))
         elements.append(single_element)
 
-    if len(elements) == 1:
-        return elements[0]
-
-    return collate_fn(elements)
+    return elements[0] if len(elements) == 1 else collate_fn(elements)
 
 
 def slice_alike_object_to_indices(
@@ -380,12 +368,7 @@ def slice_alike_object_to_indices(
             indexes_iterator = [int(slice_alike_object)]  # type: ignore
         else:
             if len(tensor_shape) == 1:
-                if tensor_shape[0] == 0:
-                    # Empty Tensor (NumPy or PyTorch)
-                    indexes_iterator = []
-                else:
-                    # Flat Tensor (NumPy or PyTorch)
-                    indexes_iterator = slice_alike_object.tolist()  # type: ignore
+                indexes_iterator = [] if tensor_shape[0] == 0 else slice_alike_object.tolist()
             else:
                 # Last attempt
                 indexes_iterator = [slice_alike_object.item()]  # type: ignore

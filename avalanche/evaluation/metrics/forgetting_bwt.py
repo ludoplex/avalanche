@@ -56,12 +56,12 @@ class Forgetting(Metric[Dict[int, float]]):
         Creates an instance of the standalone Forgetting metric
         """
 
-        self.initial: Dict[int, float] = dict()
+        self.initial: Dict[int, float] = {}
         """
         The initial value for each key.
         """
 
-        self.last: Dict[int, float] = dict()
+        self.last: Dict[int, float] = {}
         """
         The last value detected for each key
         """
@@ -106,18 +106,17 @@ class Forgetting(Metric[Dict[int, float]]):
         ik = set(self.initial.keys())
         both_keys = list(ik.intersection(set(self.last.keys())))
 
-        forgetting: Dict[int, float] = {}
-        for k in both_keys:
-            forgetting[k] = self.initial[k] - self.last[k]
-
+        forgetting: Dict[int, float] = {
+            k: self.initial[k] - self.last[k] for k in both_keys
+        }
         return forgetting
 
     def reset_last(self) -> None:
-        self.last = dict()
+        self.last = {}
 
     def reset(self) -> None:
-        self.initial = dict()
-        self.last = dict()
+        self.initial = {}
+        self.last = {}
 
 
 class GenericExperienceForgetting(
@@ -257,10 +256,7 @@ class GenericExperienceForgetting(
             metric_name = get_metric_name(self, strategy, add_experience=True)
             plot_x_position = strategy.clock.train_iterations
 
-            metric_values = [
-                MetricValue(self, metric_name, forgetting, plot_x_position)
-            ]
-            return metric_values
+            return [MetricValue(self, metric_name, forgetting, plot_x_position)]
         return None
 
     @abstractmethod
@@ -455,7 +451,7 @@ class GenericStreamForgetting(
 
         phase_name, _ = phase_and_task(strategy)
         stream = stream_type(strategy.experience)
-        metric_name = "{}/{}_phase/{}_stream".format(str(self), phase_name, stream)
+        metric_name = f"{str(self)}/{phase_name}_phase/{stream}_stream"
         plot_x_position = strategy.clock.train_iterations
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
@@ -586,8 +582,7 @@ class BWT(Forgetting):
         """
 
         forgetting = super().result_key(k)
-        bwt = forgetting_to_bwt(forgetting)
-        return bwt
+        return forgetting_to_bwt(forgetting)
 
     def result(self) -> Dict[int, float]:
         """
@@ -603,8 +598,7 @@ class BWT(Forgetting):
         """
 
         forgetting = super().result()
-        bwt = forgetting_to_bwt(forgetting)
-        return bwt
+        return forgetting_to_bwt(forgetting)
 
 
 class ExperienceBWT(ExperienceForgetting):

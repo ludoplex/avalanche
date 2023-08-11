@@ -305,14 +305,14 @@ def make_detection_dataset(
     if is_supervised:
         data = SupervisedDetectionDataset(
             [dataset],
-            data_attributes=das if len(das) > 0 else None,
+            data_attributes=das if das else None,
             transform_groups=transform_gs,
             collate_fn=collate_fn,
         )
     else:
         data = DetectionDataset(
             [dataset],
-            data_attributes=das if len(das) > 0 else None,
+            data_attributes=das if das else None,
             transform_groups=transform_gs,
             collate_fn=collate_fn,
         )
@@ -330,18 +330,13 @@ def _init_targets(
         # User defined targets always take precedence
         if len(targets) != len(dataset) and check_shape:
             raise ValueError(
-                "Invalid amount of target labels. It must be equal to the "
-                "number of patterns in the dataset. Got {}, expected "
-                "{}!".format(len(targets), len(dataset))
+                f"Invalid amount of target labels. It must be equal to the number of patterns in the dataset. Got {len(targets)}, expected {len(dataset)}!"
             )
         return DataAttribute(targets, "targets")
 
     targets = _traverse_supported_dataset(dataset, _select_targets)
 
-    if targets is None:
-        return None
-
-    return DataAttribute(targets, "targets")
+    return None if targets is None else DataAttribute(targets, "targets")
 
 
 def _detection_class_mapping_transform(class_mapping, example_target_dict):
@@ -566,7 +561,7 @@ def detection_subset(
         return SupervisedDetectionDataset(
             [dataset],
             indices=list(indices) if indices is not None else None,
-            data_attributes=das if len(das) > 0 else None,
+            data_attributes=das if das else None,
             transform_groups=transform_gs,
             frozen_transform_groups=frozen_transform_groups,
             collate_fn=collate_fn,
@@ -575,7 +570,7 @@ def detection_subset(
         return DetectionDataset(
             [dataset],
             indices=list(indices) if indices is not None else None,
-            data_attributes=das if len(das) > 0 else None,
+            data_attributes=das if das else None,
             transform_groups=transform_gs,
             frozen_transform_groups=frozen_transform_groups,
             collate_fn=collate_fn,
@@ -746,7 +741,7 @@ def concat_detection_datasets(
             return d0
 
     das: List[DataAttribute] = []
-    if len(dds) > 0:
+    if dds:
         #######################################
         # TRANSFORMATION GROUPS
         #######################################
@@ -765,21 +760,16 @@ def concat_detection_datasets(
                 if isinstance(d_set, AvalancheDataset):
                     if uniform_group is None:
                         uniform_group = d_set._transform_groups.current_group
-                    else:
-                        if uniform_group != d_set._transform_groups.current_group:
-                            uniform_group = None
-                            break
+                    elif uniform_group != d_set._transform_groups.current_group:
+                        uniform_group = None
+                        break
 
-            if uniform_group is None:
-                initial_transform_group = "train"
-            else:
-                initial_transform_group = uniform_group
-
+            initial_transform_group = "train" if uniform_group is None else uniform_group
         #######################################
         # DATA ATTRIBUTES
         #######################################
 
-        totlen = sum([len(d) for d in datasets])
+        totlen = sum(len(d) for d in datasets)
         if task_labels is not None:  # User defined targets always take precedence
             all_labels: IDataset[int]
             if isinstance(task_labels, int):
@@ -816,7 +806,7 @@ def concat_detection_datasets(
     data = DetectionDataset(
         dds,
         transform_groups=transform_groups_obj,
-        data_attributes=das if len(das) > 0 else None,
+        data_attributes=das if das else None,
     )
     return data.with_transforms(initial_transform_group)
 

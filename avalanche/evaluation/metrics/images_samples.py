@@ -60,14 +60,14 @@ class ImagesSamplePlugin(PluginMetric):
     def after_train_dataset_adaptation(
         self, strategy: "SupervisedTemplate"
     ) -> "MetricResult":
-        if self.mode == "train" or self.mode == "both":
+        if self.mode in ["train", "both"]:
             return self._make_grid_sample(strategy)
         return None
 
     def after_eval_dataset_adaptation(
         self, strategy: "SupervisedTemplate"
     ) -> "MetricResult":
-        if self.mode == "eval" or self.mode == "both":
+        if self.mode in ["eval", "both"]:
             return self._make_grid_sample(strategy)
         return None
 
@@ -160,9 +160,7 @@ class _MaybeToTensor(ToTensor):
         Returns:
             Tensor: Converted image.
         """
-        if isinstance(pic, Tensor):
-            return pic
-        return super().__call__(pic)
+        return pic if isinstance(pic, Tensor) else super().__call__(pic)
 
 
 def images_samples_metrics(

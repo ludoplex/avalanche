@@ -127,25 +127,17 @@ def CORe50(
     core_data = CORe50Dataset(root=dataset_root, mini=mini)
 
     root = core_data.root
-    if mini:
-        bp = "core50_32x32"
-    else:
-        bp = "core50_128x128"
+    bp = "core50_32x32" if mini else "core50_128x128"
     root_img = root / bp
 
-    if object_lvl:
-        suffix = "/"
-    else:
-        suffix = "_cat/"
+    suffix = "/" if object_lvl else "_cat/"
     filelists_bp = scen2dirs[scenario][:-1] + suffix + "run" + str(run)
-    train_failists_paths = []
-    for batch_id in range(nbatch[scenario]):
-        train_failists_paths.append(
-            root
-            / filelists_bp
-            / ("train_batch_" + str(batch_id).zfill(2) + "_filelist.txt")
-        )
-
+    train_failists_paths = [
+        root
+        / filelists_bp
+        / f"train_batch_{str(batch_id).zfill(2)}_filelist.txt"
+        for batch_id in range(nbatch[scenario])
+    ]
     benchmark_obj = create_generic_benchmark_from_filelists(
         root_img,
         train_failists_paths,
@@ -161,9 +153,7 @@ def CORe50(
         classes_order = []
         for exp in benchmark_obj.train_stream:
             exp_dataset = exp.dataset
-            unique_targets = list(
-                sorted(set(int(x) for x in exp_dataset.targets))  # type: ignore
-            )
+            unique_targets = list(sorted({int(x) for x in exp_dataset.targets}))
             n_classes_per_exp.append(len(unique_targets))
             classes_order.extend(unique_targets)
         setattr(benchmark_obj, "n_classes_per_exp", n_classes_per_exp)

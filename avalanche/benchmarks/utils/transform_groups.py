@@ -92,7 +92,7 @@ class TransformGroups:
         """
         self.transform_groups: Dict[
             str, Union[TupleTransform, MultiParamTransform, None]
-        ] = dict()
+        ] = {}
         for group, transform in transform_groups.items():
             norm_transform = _normalize_transform(transform)
             self.transform_groups[group] = norm_transform
@@ -143,9 +143,7 @@ class TransformGroups:
 
                 to_expand_group: Union[TupleTransform, MultiParamTransform, None]
                 for to_expand_group in [self_group, other_group]:
-                    if to_expand_group is None:
-                        pass
-                    else:
+                    if to_expand_group is not None:
                         assert callable(to_expand_group)
                         composed_transforms.append(to_expand_group)
 
@@ -170,8 +168,7 @@ class TransformGroups:
             if len(res) > 0:
                 res += "\n"
             res += f"- {k}: {v}"
-        res = f"current_group: '{self.current_group}'\n" + res
-        return res
+        return f"current_group: '{self.current_group}'\n{res}"
 
     def __copy__(self):
         # copy of TransformGroups should copy the dictionary

@@ -85,11 +85,13 @@ def flat_datasets_from_benchmark(
     for dataset, indices_and_transforms in leaves.items():
         # Check that all transforms are the same
         first_transform = indices_and_transforms[0][1]
-        same_transforms = all([first_transform == t for _, t in indices_and_transforms])
+        same_transforms = all(first_transform == t for _, t in indices_and_transforms)
 
         if not same_transforms:
-            for indices, transforms in indices_and_transforms:
-                result.append((dataset, indices, transforms))
+            result.extend(
+                (dataset, indices, transforms)
+                for indices, transforms in indices_and_transforms
+            )
             continue
 
         flat_indices = [i for i, _ in indices_and_transforms]
@@ -204,8 +206,6 @@ def _traverse_supported_dataset_with_intermediate(
         datasets_to_indexes = defaultdict(list)
         indexes_to_dataset = []
         datasets_len = []
-        recursion_result = []
-
         all_size = 0
         for c_dataset in concatenated_datasets:
             len_dataset = len(c_dataset)
@@ -219,25 +219,24 @@ def _traverse_supported_dataset_with_intermediate(
             datasets_to_indexes[dataset_idx].append(pattern_idx)
             indexes_to_dataset.append(dataset_idx)
 
-        for dataset_idx, c_dataset in enumerate(concatenated_datasets):
-            recursion_result.append(
-                deque(
-                    _traverse_supported_dataset_with_intermediate(
-                        c_dataset,
-                        values_selector,
-                        intermediate_selector=intermediate_selector,
-                        indices=datasets_to_indexes[dataset_idx],
-                        intermediate=intermediate,
-                    )
+        recursion_result = [
+            deque(
+                _traverse_supported_dataset_with_intermediate(
+                    c_dataset,
+                    values_selector,
+                    intermediate_selector=intermediate_selector,
+                    indices=datasets_to_indexes[dataset_idx],
+                    intermediate=intermediate,
                 )
             )
-
+            for dataset_idx, c_dataset in enumerate(concatenated_datasets)
+        ]
         result = []
         for idx in range(len(indices)):
             dataset_idx = indexes_to_dataset[idx]
             result.append(recursion_result[dataset_idx].popleft())
 
-        if len(result) == 0:
+        if not result:
             raise RuntimeError("Empty result")
         return result
 
@@ -357,7 +356,7 @@ def single_flat_dataset(dataset, include_leaf_transforms: bool = True):
 
     # Check that all transforms are the same
     first_transform = indices_and_transforms[0][1]
-    same_transforms = all([first_transform == t for _, t in indices_and_transforms])
+    same_transforms = all(first_transform == t for _, t in indices_and_transforms)
 
     if not same_transforms:
         return None

@@ -68,9 +68,7 @@ def tensor_as_list(sequence) -> List:
         return sequence
     if not isinstance(sequence, Iterable):
         return [sequence]
-    if isinstance(sequence, Tensor):
-        return sequence.tolist()
-    return list(sequence)
+    return sequence.tolist() if isinstance(sequence, Tensor) else list(sequence)
 
 
 def _indexes_grouped_by_classes(
@@ -110,17 +108,7 @@ def _indexes_grouped_by_classes(
             result_per_class[class_id].sort()
         result.extend(result_per_class[class_id])
 
-    if result == patterns_indexes and indexes_was_none:
-        # Result is [0, 1, 2, ..., N] and patterns_indexes was originally None
-        # This means that the user tried to obtain a full Dataset
-        # (indexes_was_none) only ordered according to the sort_indexes and
-        # sort_classes parameters. However, sort_indexes+sort_classes returned
-        # the plain pattern sequence as it already is. So the original Dataset
-        # already satisfies the sort_indexes+sort_classes constraints.
-        # By returning None, we communicate that the Dataset can be taken as-is.
-        return None
-
-    return result
+    return None if result == patterns_indexes and indexes_was_none else result
 
 
 def grouped_and_ordered_indexes(
@@ -169,9 +157,7 @@ def grouped_and_ordered_indexes(
 
     # We are here only because patterns_indexes != None and sort_indexes is True
     patterns_indexes = tensor_as_list(patterns_indexes)
-    result = list(patterns_indexes)  # Make sure we're working on a copy
-    result.sort()
-    return result
+    return sorted(patterns_indexes)
 
 
 def as_avalanche_dataset(
@@ -238,17 +224,11 @@ def find_common_transforms_group(
         if isinstance(d_set, AvalancheDataset):
             if uniform_group is None:
                 uniform_group = d_set._flat_data._transform_groups.current_group
-            else:
-                if uniform_group != d_set._flat_data._transform_groups.current_group:
-                    uniform_group = None
-                    break
+            elif uniform_group != d_set._flat_data._transform_groups.current_group:
+                uniform_group = None
+                break
 
-    if uniform_group is None:
-        initial_transform_group = default_group
-    else:
-        initial_transform_group = uniform_group
-
-    return initial_transform_group
+    return default_group if uniform_group is None else uniform_group
 
 
 Y = TypeVar("Y")
@@ -309,8 +289,6 @@ def _traverse_supported_dataset(
         datasets_to_indexes = defaultdict(list)
         indexes_to_dataset = []
         datasets_len = []
-        recursion_result = []
-
         all_size = 0
         for c_dataset in dataset.datasets:
             len_dataset = len(c_dataset)
@@ -324,17 +302,16 @@ def _traverse_supported_dataset(
             datasets_to_indexes[dataset_idx].append(pattern_idx)
             indexes_to_dataset.append(dataset_idx)
 
-        for dataset_idx, c_dataset in enumerate(dataset.datasets):
-            recursion_result.append(
-                deque(
-                    _traverse_supported_dataset(
-                        c_dataset,
-                        values_selector,
-                        datasets_to_indexes[dataset_idx],
-                    )
+        recursion_result = [
+            deque(
+                _traverse_supported_dataset(
+                    c_dataset,
+                    values_selector,
+                    datasets_to_indexes[dataset_idx],
                 )
             )
-
+            for dataset_idx, c_dataset in enumerate(dataset.datasets)
+        ]
         result = []
         for idx in range(len(indices)):
             dataset_idx = indexes_to_dataset[idx]
@@ -376,9 +353,7 @@ def _init_task_labels(
             task_labels = ConstantSequence(task_labels, len(dataset))
         elif len(task_labels) != len(dataset) and check_shape:
             raise ValueError(
-                "Invalid amount of task labels. It must be equal to the "
-                "number of patterns in the dataset. Got {}, expected "
-                "{}!".format(len(task_labels), len(dataset))
+                f"Invalid amount of task labels. It must be equal to the number of patterns in the dataset. Got {len(task_labels)}, expected {len(dataset)}!"
             )
 
         if isinstance(task_labels, ConstantSequence):
@@ -425,11 +400,12 @@ def _select_task_labels(
         if isinstance(dataset, (Subset, ConcatDataset)):
             return None  # Continue traversing
 
-    if found_task_labels is None:
-        if indices is None:
-            return ConstantSequence(0, len(dataset))
-        return ConstantSequence(0, len(indices))
-
+        else:
+            return (
+                ConstantSequence(0, len(dataset))
+                if indices is None
+                else ConstantSequence(0, len(indices))
+            )
     if indices is not None:
         found_task_labels = SubSequence(found_task_labels, indices=indices)
 
@@ -489,19 +465,19 @@ def _init_transform_groups(
             initial_transform_group = "train"
 
     if transform_groups is None:
-        if target_transform is None and transform is None:
-            tgs = None
-        else:
-            tgs = TransformGroups(
+        return (
+            None
+            if target_transform is None and transform is None
+            else TransformGroups(
                 {
                     "train": (transform, target_transform),
                     "eval": (transform, target_transform),
                 },
                 current_group=initial_transform_group,
             )
+        )
     else:
-        tgs = TransformGroups(transform_groups, current_group=initial_transform_group)
-    return tgs
+        return TransformGroups(transform_groups, current_group=initial_transform_group)
 
 
 def _check_groups_dict_format(groups_dict):

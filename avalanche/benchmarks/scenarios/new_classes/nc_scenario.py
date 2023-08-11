@@ -296,16 +296,13 @@ class NCScenario(
             self.n_classes_per_exp = [default_per_exp_classes] * n_experiences
             for exp_id in per_experience_classes:
                 self.n_classes_per_exp[exp_id] = per_experience_classes[exp_id]
+        elif self.n_classes % n_experiences > 0:
+            raise ValueError(
+                f"Invalid number of experiences: classes contained in "
+                f"dataset ({self.n_classes}) cannot be divided by "
+                f"n_experiences ({n_experiences})"
+            )
         else:
-            # Classes will be equally distributed across the experiences
-            # The amount of classes must be be divisible without remainder
-            # by the number of experiences
-            if self.n_classes % n_experiences > 0:
-                raise ValueError(
-                    f"Invalid number of experiences: classes contained in "
-                    f"dataset ({self.n_classes}) cannot be divided by "
-                    f"n_experiences ({n_experiences})"
-                )
             self.n_classes_per_exp = [self.n_classes // n_experiences] * n_experiences
 
         # Before populating the classes_in_experience list,
@@ -480,7 +477,7 @@ class NCScenario(
         )
 
     def get_reproducibility_data(self):
-        reproducibility_data = {
+        return {
             "class_ids_from_zero_from_first_exp": bool(
                 self.class_ids_from_zero_from_first_exp
             ),
@@ -494,7 +491,6 @@ class NCScenario(
             "n_experiences": int(self.n_experiences),
             "has_task_labels": self._has_task_labels,
         }
-        return reproducibility_data
 
     def classes_in_exp_range(
         self, exp_start: int, exp_end: Optional[int] = None

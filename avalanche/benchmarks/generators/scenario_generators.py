@@ -656,12 +656,11 @@ def tensor_scenario(
     if isinstance(test_data_x, Tensor):
         test_data_x = [test_data_x]
         test_data_y = [test_data_y]
-    else:
-        if len(test_data_x) != len(test_data_y):
-            raise ValueError(
-                "test_data_x and test_data_y must contain"
-                " the same amount of elements"
-            )
+    elif len(test_data_x) != len(test_data_y):
+        raise ValueError(
+            "test_data_x and test_data_y must contain"
+            " the same amount of elements"
+        )
 
     if len(train_data_x) != len(train_data_y):
         raise ValueError(

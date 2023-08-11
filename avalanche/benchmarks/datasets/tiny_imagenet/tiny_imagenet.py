@@ -117,12 +117,10 @@ class TinyImagenet(SimpleDownloadableDataset):
 
             if self.train:
                 X = self.get_train_images_paths(class_name)
-                Y = [class_id] * len(X)
             else:
                 # test set
                 X = self.get_test_images_paths(class_name)
-                Y = [class_id] * len(X)
-
+            Y = [class_id] * len(X)
             data[0].extend(X)
             data[1].extend(Y)
 
@@ -138,9 +136,7 @@ class TinyImagenet(SimpleDownloadableDataset):
         """
         train_img_folder: Path = self.data_folder / "train" / class_name / "images"
 
-        img_paths = [f for f in train_img_folder.iterdir() if f.is_file()]
-
-        return img_paths
+        return [f for f in train_img_folder.iterdir() if f.is_file()]
 
     def get_test_images_paths(self, class_name) -> List[Path]:
         """
@@ -159,13 +155,8 @@ class TinyImagenet(SimpleDownloadableDataset):
         # filter validation images by class using appropriate file
         with open(str(annotations_file), "r") as f:
             reader = csv.reader(f, dialect="excel-tab")
-            for ll in reader:
-                if ll[1] == class_name:
-                    valid_names.append(ll[0])
-
-        img_paths = [val_img_folder / f for f in valid_names]
-
-        return img_paths
+            valid_names.extend(ll[0] for ll in reader if ll[1] == class_name)
+        return [val_img_folder / f for f in valid_names]
 
     def __len__(self):
         """Returns the length of the set"""

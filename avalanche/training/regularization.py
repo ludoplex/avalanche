@@ -73,8 +73,7 @@ class LearningWithoutForgetting(RegularizationMethod):
         # so optimizing the crossentropy and kl-div are equivalent.
         log_p = torch.log_softmax(out[:, au] / self.temperature, dim=1)
         q = torch.softmax(prev_out[:, au] / self.temperature, dim=1)
-        res = torch.nn.functional.kl_div(log_p, q, reduction="batchmean")
-        return res
+        return torch.nn.functional.kl_div(log_p, q, reduction="batchmean")
 
     def _lwf_penalty(self, out, x, curr_model):
         """
@@ -82,31 +81,29 @@ class LearningWithoutForgetting(RegularizationMethod):
         """
         if self.prev_model is None:
             return 0
-        else:
-            if isinstance(self.prev_model, MultiTaskModule):
-                # output from previous output heads.
-                with torch.no_grad():
-                    y_prev = avalanche_forward(self.prev_model, x, None)
-                y_prev = {k: v for k, v in y_prev.items()}
-                # in a multitask scenario we need to compute the output
-                # from all the heads, so we need to call forward again.
-                # TODO: can we avoid this?
-                y_curr = avalanche_forward(curr_model, x, None)
-                y_curr = {k: v for k, v in y_curr.items()}
-            else:  # no task labels. Single task LwF
-                with torch.no_grad():
-                    y_prev = {0: self.prev_model(x)}
-                y_curr = {0: out}
+        if isinstance(self.prev_model, MultiTaskModule):
+            # output from previous output heads.
+            with torch.no_grad():
+                y_prev = avalanche_forward(self.prev_model, x, None)
+            y_prev = dict(y_prev.items())
+            # in a multitask scenario we need to compute the output
+            # from all the heads, so we need to call forward again.
+            # TODO: can we avoid this?
+            y_curr = avalanche_forward(curr_model, x, None)
+            y_curr = dict(y_curr.items())
+        else:  # no task labels. Single task LwF
+            with torch.no_grad():
+                y_prev = {0: self.prev_model(x)}
+            y_curr = {0: out}
 
-            dist_loss = 0
-            for task_id in y_prev.keys():
+        dist_loss = 0
+        for task_id, yp in y_prev.items():
                 # compute kd only for previous heads and only for seen units.
-                if task_id in self.prev_classes_by_task:
-                    yp = y_prev[task_id]
-                    yc = y_curr[task_id]
-                    au = self.prev_classes_by_task[task_id]
-                    dist_loss += self._distillation_loss(yc, yp, au)
-            return dist_loss
+            if task_id in self.prev_classes_by_task:
+                yc = y_curr[task_id]
+                au = self.prev_classes_by_task[task_id]
+                dist_loss += self._distillation_loss(yc, yp, au)
+        return dist_loss
 
     def __call__(self, mb_x, mb_pred, model):
         """
@@ -256,8 +253,7 @@ class AMLCriterion(RegularizationMethod):
         similarity -= similarity.max(dim=1)[0].detach()
         log_prob = similarity - torch.log(torch.exp(similarity).sum(1))
         mean_log_prob_pos = (pos_mask * log_prob).sum(1) / pos_mask.sum(1)
-        loss = -(self.temp / self.base_temp) * mean_log_prob_pos.mean()
-        return loss
+        return -(self.temp / self.base_temp) * mean_log_prob_pos.mean()
 
     def __scale_by_norm(self, x: torch.Tensor) -> torch.Tensor:
         """

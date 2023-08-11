@@ -137,17 +137,14 @@ class BiCPlugin(SupervisedPlugin):
             target = int(target)
             cl_idxs[target].append(idx)
 
-        for c in cl_idxs.keys():
+        for c in cl_idxs:
             self.class_to_tasks[c] = task_id
 
         self.seen_classes.update(cl_idxs.keys())
         lens = self.get_group_lengths(len(self.seen_classes))
-        class_to_len = {}
-        for class_id, ll in zip(self.seen_classes, lens):
-            class_to_len[class_id] = ll
-
+        class_to_len = dict(zip(self.seen_classes, lens))
         train_data = []
-        for class_id in cl_idxs.keys():
+        for class_id, value in cl_idxs.items():
             ll = class_to_len[class_id]
             new_data_c = new_data.subset(cl_idxs[class_id][:ll])
             if class_id in self.val_buffer:
@@ -159,7 +156,7 @@ class BiCPlugin(SupervisedPlugin):
                 new_buffer.update_from_dataset(new_data_c)
                 self.val_buffer[class_id] = new_buffer
 
-            train_data.append(new_data.subset(cl_idxs[class_id][ll:]))
+            train_data.append(new_data.subset(value[ll:]))
 
         # resize buffers
         for class_id, class_buf in self.val_buffer.items():
@@ -218,18 +215,18 @@ class BiCPlugin(SupervisedPlugin):
             strategy.mb_output = self.bias_layer[t](strategy.mb_output)
 
     def before_backward(self, strategy, **kwargs):
-        # Distill
-        task_id = strategy.clock.train_exp_counter
-
         if self.model_old is not None:
             out_old = self.model_old(strategy.mb_x.to(strategy.device))
             out_new = strategy.model(strategy.mb_x.to(strategy.device))
 
-            old_clss = []
-            for c in self.class_to_tasks.keys():
-                if self.class_to_tasks[c] < task_id:
-                    old_clss.append(c)
+            # Distill
+            task_id = strategy.clock.train_exp_counter
 
+            old_clss = [
+                c
+                for c in self.class_to_tasks.keys()
+                if self.class_to_tasks[c] < task_id
+            ]
             loss_dist = self.cross_entropy(out_new[:, old_clss], out_old[:, old_clss])
             if self.lamb == -1:
                 lamb = len(old_clss) / len(self.seen_classes)
@@ -244,10 +241,7 @@ class BiCPlugin(SupervisedPlugin):
         self.storage_policy.update(strategy, **kwargs)
 
         if task_id > 0:
-            list_subsets = []
-            for _, class_buf in self.val_buffer.items():
-                list_subsets.append(class_buf.buffer)
-
+            list_subsets = [class_buf.buffer for _, class_buf in self.val_buffer.items()]
             stage_set = concat_classification_datasets(list_subsets)
             stage_loader = DataLoader(
                 stage_set,

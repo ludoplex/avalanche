@@ -306,20 +306,17 @@ class _ExpertGatePlugin(SupervisedPlugin):
         ae_strategy.eval(strategy.experience)
 
         # Build the key for evaluation metrics dictionary
-        if strategy.experience.origin_stream.name == "train":
-            key = "Loss_Stream/eval_phase/train_stream/Task" + "{:0>3d}".format(
-                strategy.experience.task_label
-            )
-
-        elif strategy.experience.origin_stream.name == "test":
+        if strategy.experience.origin_stream.name == "test":
             key = "Loss_Stream/eval_phase/test_stream/Task" + "{:0>3d}".format(
                 strategy.experience.task_label
             )
 
-        # Query for reconstruction loss
-        error = ae_strategy.evaluator.get_last_metrics()[key]
+        elif strategy.experience.origin_stream.name == "train":
+            key = "Loss_Stream/eval_phase/train_stream/Task" + "{:0>3d}".format(
+                strategy.experience.task_label
+            )
 
-        return error
+        return ae_strategy.evaluator.get_last_metrics()[key]
 
     # ##################
     # AUTENCODER METHODS

@@ -220,7 +220,7 @@ class DatasetScenario(
         element. Check the ``complete_test_set_only`` field for more details.
         """
 
-        self.complete_test_set_only: bool = bool(complete_test_set_only)
+        self.complete_test_set_only: bool = complete_test_set_only
         """
         If True, only the complete test set will be returned from experience
         instances.
@@ -259,12 +259,10 @@ class DatasetScenario(
     @property
     def task_labels(self) -> Sequence[List[int]]:
         """The task label of each training experience."""
-        t_labels = []
-
-        for exp_t_labels in self.stream_definitions["train"].exps_task_labels:
-            t_labels.append(list(exp_t_labels))
-
-        return t_labels
+        return [
+            list(exp_t_labels)
+            for exp_t_labels in self.stream_definitions["train"].exps_task_labels
+        ]
 
     def get_reproducibility_data(self) -> Dict[str, Any]:
         """
@@ -286,7 +284,7 @@ class DatasetScenario(
             experiment.
         """
 
-        return dict()
+        return {}
 
     def _make_original_dataset_fields(self):
         for stream_name, stream_def in self.stream_definitions.items():
@@ -318,7 +316,7 @@ class DatasetScenario(
         :param stream_definitions: The input stream definitions.
         :return: The checked and adapted stream definitions.
         """
-        streams_defs = dict()
+        streams_defs = {}
 
         if "train" not in stream_definitions:
             raise ValueError("No train stream found!")
@@ -378,33 +376,37 @@ class DatasetScenario(
         if len(stream_def) > 3:
             is_lazy = stream_def[3]  # type: ignore
 
-        if is_lazy or (isinstance(exp_data, tuple) and (is_lazy is None)):
-            # Creation based on a generator
-            if is_lazy:
+        if is_lazy:
                 # We also check for LazyDatasetSequence, which is sufficient
                 # per se (only if is_lazy==True, otherwise is treated as a
                 # standard Sequence)
-                if not isinstance(exp_data, LazyDatasetSequence):
-                    if (not isinstance(exp_data, tuple)) or (not len(exp_data) == 2):
-                        raise ValueError(
-                            f"The stream {stream_name} was flagged as "
-                            f"lazy-generated but its definition is not a "
-                            f"2-elements tuple (generator and stream length)."
-                        )
-            else:
-                if (
-                    (not isinstance(exp_data, Sequence))
-                    or (not len(exp_data) == 2)
-                    or (not isinstance(exp_data[1], int))
-                ):
+            if not isinstance(exp_data, LazyDatasetSequence):
+                if not isinstance(exp_data, tuple) or len(exp_data) != 2:
                     raise ValueError(
-                        f"The stream {stream_name} was detected "
-                        f"as lazy-generated but its definition is not a "
-                        f"2-elements tuple. If you're trying to define a "
-                        f"non-lazily generated stream, don't use a tuple "
-                        f"when passing the list of datasets, use a list "
-                        f"instead."
+                        f"The stream {stream_name} was flagged as "
+                        f"lazy-generated but its definition is not a "
+                        f"2-elements tuple (generator and stream length)."
                     )
+            if isinstance(exp_data, LazyDatasetSequence):
+                stream_length = len(exp_data)
+            else:
+                # exp_data[0] must contain the generator
+                stream_length = exp_data[1]
+            is_lazy = True
+        elif (isinstance(exp_data, tuple) and (is_lazy is None)):
+            if (
+                not isinstance(exp_data, Sequence)
+                or len(exp_data) != 2
+                or not isinstance(exp_data[1], int)
+            ):
+                raise ValueError(
+                    f"The stream {stream_name} was detected "
+                    f"as lazy-generated but its definition is not a "
+                    f"2-elements tuple. If you're trying to define a "
+                    f"non-lazily generated stream, don't use a tuple "
+                    f"when passing the list of datasets, use a list "
+                    f"instead."
+                )
 
             if isinstance(exp_data, LazyDatasetSequence):
                 stream_length = len(exp_data)
@@ -423,7 +425,7 @@ class DatasetScenario(
             is_lazy = False
 
         if not is_lazy:
-            for i, dataset in enumerate(exp_data):  # type: ignore
+            for dataset in exp_data:
                 if not isinstance(dataset, AvalancheDataset):
                     raise ValueError(
                         "All experience datasets must be subclasses of"
@@ -440,10 +442,9 @@ class DatasetScenario(
 
             # Extract task labels from the dataset
             exp_dataset: AvalancheDataset
-            for i, exp_dataset in enumerate(exp_data):  # type: ignore
-                task_labels_list.append(
-                    set(exp_dataset.targets_task_labels)
-                )  # type: ignore
+            task_labels_list.extend(
+                set(exp_dataset.targets_task_labels) for exp_dataset in exp_data
+            )
         else:
             # Standardize task labels structure
             for t_l in task_labels:
@@ -546,11 +547,7 @@ class ClassesTimelineCLScenario(
                 break
             class_set_prev_exps.update(prev_exp_classes)
 
-        if prev_exps_not_none:
-            previous_classes = list(class_set_prev_exps)
-        else:
-            previous_classes = None
-
+        previous_classes = list(class_set_prev_exps) if prev_exps_not_none else None
         if class_set_current_exp is not None and prev_exps_not_none:
             classes_seen_so_far = list(class_set_current_exp.union(class_set_prev_exps))
         else:
@@ -566,11 +563,7 @@ class ClassesTimelineCLScenario(
                 break
             class_set_future_exps.update(future_exp_classes)
 
-        if future_exps_not_none:
-            future_classes = list(class_set_future_exps)
-        else:
-            future_classes = None
-
+        future_classes = list(class_set_future_exps) if future_exps_not_none else None
         return (
             classes_in_this_exp,
             previous_classes,
@@ -660,8 +653,7 @@ class FactoryBasedStream(DatasetStream[TDatasetExperience]):
         return len(self.benchmark.stream_definitions[self.name].exps_data)
 
     def _make_experience(self, experience_idx: int) -> TDatasetExperience:
-        a = self.benchmark.experience_factory(self, experience_idx)  # type: ignore
-        return a
+        return self.benchmark.experience_factory(self, experience_idx)
 
 
 __all__ = [

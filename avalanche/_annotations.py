@@ -38,7 +38,7 @@ def experimental(reason: Optional[str] = None):
         else:
             func.__doc__ += "\n\n"
 
-        func.__doc__ += "Warning: Experimental API. " + reason
+        func.__doc__ += f"Warning: Experimental API. {reason}"
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -74,9 +74,7 @@ def deprecated(version: float, reason: str):
         else:
             func.__doc__ += "\n\n"
 
-        func.__doc__ += "Warning: Deprecated" + msg_suffix.format(
-            name=func.__name__, version=version, reason=reason
-        )
+        func.__doc__ += f"Warning: Deprecated{msg_suffix.format(name=func.__name__, version=version, reason=reason)}"
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):

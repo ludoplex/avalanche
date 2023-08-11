@@ -75,10 +75,10 @@ class BatchObservation(SGDStrategyProtocol):
 
         if at_task_boundary(self.experience):
             self.model = self.model_adaptation()
-            self.make_optimizer(reset_optimizer_state=reset_optimizer_state, **kwargs)
         else:
             self.model = self.model_adaptation()
-            self.make_optimizer(reset_optimizer_state=reset_optimizer_state, **kwargs)
+
+        self.make_optimizer(reset_optimizer_state=reset_optimizer_state, **kwargs)
 
 
 __all__ = ["BatchObservation"]

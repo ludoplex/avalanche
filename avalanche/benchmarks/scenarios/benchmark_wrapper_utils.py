@@ -86,8 +86,7 @@ class CLStreamWrapper(CLStream[ExperienceWrapper[TCLExperience]]):
     def __iter__(self) -> Iterator[ExperienceWrapper[TCLExperience]]:
         exp: TCLExperience
         for i, exp in enumerate(self._wrapped_stream):
-            exp_wrapped = ExperienceWrapper(exp, i, self)
-            yield exp_wrapped
+            yield ExperienceWrapper(exp, i, self)
 
 
 class SizedCLStreamWrapper(CLStreamWrapper[TCLExperience]):
@@ -142,8 +141,7 @@ class SequenceStreamWrapper(SequenceCLStream[ExperienceWrapper[TCLExperience]]):
         Obtain the experience at the given position in the wrapped stream.
         """
         exp = self._wrapped_stream[experience_idx]
-        wrapped_exp = ExperienceWrapper(exp, experience_idx, self)
-        return wrapped_exp
+        return ExperienceWrapper(exp, experience_idx, self)
 
 
 def wrap_stream(
@@ -160,20 +158,25 @@ def wrap_stream(
     s_wrapped: CLStream
     if isinstance(wrapped_stream, SequenceCLStream):
         # Maintain indexing/slicing functionalities
-        s_wrapped = SequenceStreamWrapper(
-            name=new_name, benchmark=new_benchmark, wrapped_stream=wrapped_stream
+        return SequenceStreamWrapper(
+            name=new_name,
+            benchmark=new_benchmark,
+            wrapped_stream=wrapped_stream,
         )
     elif isinstance(wrapped_stream, SizedCLStream):
         # Sized stream
-        s_wrapped = SizedCLStreamWrapper(
-            name=new_name, benchmark=new_benchmark, wrapped_stream=wrapped_stream
+        return SizedCLStreamWrapper(
+            name=new_name,
+            benchmark=new_benchmark,
+            wrapped_stream=wrapped_stream,
         )
     else:
         # Plain iter-based stream
-        s_wrapped = CLStreamWrapper(
-            name=new_name, benchmark=new_benchmark, wrapped_stream=wrapped_stream
+        return CLStreamWrapper(
+            name=new_name,
+            benchmark=new_benchmark,
+            wrapped_stream=wrapped_stream,
         )
-    return s_wrapped
 
 
 __all__ = ["wrap_stream"]

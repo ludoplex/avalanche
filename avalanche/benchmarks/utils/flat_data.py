@@ -95,9 +95,7 @@ class LazyIndices:
             return 0
 
         lens = [0]
-        for ll in self._lists:
-            if isinstance(ll, LazyIndices):
-                lens.append(ll._depth())
+        lens.extend(ll._depth() for ll in self._lists if isinstance(ll, LazyIndices))
         return max(lens) + 1
 
     def _to_eager(self):
@@ -207,10 +205,7 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
         """This method creates indices on-the-fly if self._indices=None.
         Only for internal use. Call may be expensive if self._indices=None.
         """
-        if self._indices is not None:
-            return self._indices
-        else:
-            return LazyRange(0, len(self))
+        return self._indices if self._indices is not None else LazyRange(0, len(self))
 
     def subset(self: TFlatData, indices: Optional[Iterable[int]]) -> TFlatData:
         """Subsampling operation.
@@ -464,10 +459,10 @@ def _flatten_dataset_list(
     # merge consecutive Subsets if compatible
     new_data_list: List[IDataset[T_co]] = []
     for dataset in flattened_list:
-        last_dataset = new_data_list[-1] if len(new_data_list) > 0 else None
+        last_dataset = new_data_list[-1] if new_data_list else None
         if (
             isinstance(dataset, FlatData)
-            and len(new_data_list) > 0
+            and new_data_list
             and isinstance(last_dataset, FlatData)
         ):
             new_data_list.pop()
@@ -523,12 +518,10 @@ def _flatten_datasets_and_reindex(
     new_datasets = list(dset_uniques)
     new_dpos = {d: i for i, d in enumerate(new_datasets)}
     new_cumsizes = [0] + ConcatDataset.cumsum(new_datasets)
-    # reindex the indices to account for the new dataset position
-    new_indices: List[int] = []
-    for d_idx, s_idx in data_sample_pairs:
-        new_d_idx = new_dpos[datasets[d_idx]]
-        new_indices.append(new_cumsizes[new_d_idx] + s_idx)
-
+    new_indices: List[int] = [
+        new_cumsizes[new_dpos[datasets[d_idx]]] + s_idx
+        for d_idx, s_idx in data_sample_pairs
+    ]
     # NOTE: check disabled to avoid slowing down OCL scenarios
     # if len(new_indices) > 0 and new_cumsizes[-1] > 0:
     #     assert min(new_indices) >= 0
@@ -556,13 +549,10 @@ def _maybe_merge_subsets(d1: FlatData, d2: FlatData):
 def _flatdata_depth(dataset):
     """Internal debugging method.
     Returns the depth of the dataset tree."""
-    if isinstance(dataset, FlatData):
-        dchilds = [_flatdata_depth(dd) for dd in dataset._datasets]
-        if len(dchilds) == 0:
-            return 1
-        return 1 + max(dchilds)
-    else:
+    if not isinstance(dataset, FlatData):
         return 1
+    dchilds = [_flatdata_depth(dd) for dd in dataset._datasets]
+    return 1 if not dchilds else 1 + max(dchilds)
 
 
 def _flatdata_print(dataset, indent=0):
@@ -577,27 +567,23 @@ def _flatdata_repr(dataset, indent=0):
     """
     from avalanche.benchmarks.utils.data import _FlatDataWithTransform
 
-    if isinstance(dataset, FlatData):
-        ss = dataset._indices is not None
-        cc = len(dataset._datasets) != 1
-        cf = dataset._can_flatten
-        s = (
-            "\t" * indent
-            + f"{dataset.__class__.__name__} (len={len(dataset)},subset={ss},"
-            f"cat={cc},cf={cf})\n"
-        )
-        if isinstance(dataset, _FlatDataWithTransform):
-            s = s[:-2] + (
-                f",transform_groups={dataset._transform_groups},"
-                f"frozen_transform_groups={dataset._frozen_transform_groups})\n"
-            )
-        for dd in dataset._datasets:
-            s += _flatdata_repr(dd, indent + 1)
-        return s
-    else:
+    if not isinstance(dataset, FlatData):
         return (
             "\t" * indent + f"{dataset.__class__.__name__} " f"(len={len(dataset)})\n"
         )
+    ss = dataset._indices is not None
+    cc = len(dataset._datasets) != 1
+    cf = dataset._can_flatten
+    s = (
+        "\t" * indent
+        + f"{dataset.__class__.__name__} (len={len(dataset)},subset={ss},"
+        f"cat={cc},cf={cf})\n"
+    )
+    if isinstance(dataset, _FlatDataWithTransform):
+        s = f"{s[:-2]},transform_groups={dataset._transform_groups},frozen_transform_groups={dataset._frozen_transform_groups})\n"
+    for dd in dataset._datasets:
+        s += _flatdata_repr(dd, indent + 1)
+    return s
 
 
 __all__ = ["FlatData", "ConstantSequence"]

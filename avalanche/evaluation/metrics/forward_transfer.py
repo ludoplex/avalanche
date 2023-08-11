@@ -48,13 +48,13 @@ class ForwardTransfer(Metric[Dict[int, float]]):
         Creates an instance of the standalone Forward Transfer metric
         """
 
-        self.initial: Dict[int, float] = dict()
+        self.initial: Dict[int, float] = {}
         """
         The initial value for each key. This is the accuracy at 
         random initialization.
         """
 
-        self.previous: Dict[int, float] = dict()
+        self.previous: Dict[int, float] = {}
         """
         The previous experience value detected for each key
         """
@@ -83,10 +83,7 @@ class ForwardTransfer(Metric[Dict[int, float]]):
         """
         assert k is not None
 
-        if k in self.previous:
-            return self.previous[k] - self.initial[k]
-        else:
-            return None
+        return self.previous[k] - self.initial[k] if k in self.previous else None
 
     def result(self) -> Dict[int, float]:
         """
@@ -106,7 +103,7 @@ class ForwardTransfer(Metric[Dict[int, float]]):
         return forward_transfer
 
     def reset(self) -> None:
-        self.previous = dict()
+        self.previous = {}
 
 
 class GenericExperienceForwardTransfer(
@@ -231,11 +228,10 @@ class GenericExperienceForwardTransfer(
         self._check_eval_exp_id()
         if self.at_init:
             self.update(self.eval_exp_id, self.metric_result(strategy), initial=True)
-        else:
-            if self.train_exp_id == self.eval_exp_id - 1:
-                self.update(self.eval_exp_id, self.metric_result(strategy))
+        elif self.train_exp_id == self.eval_exp_id - 1:
+            self.update(self.eval_exp_id, self.metric_result(strategy))
 
-                return self._package_result(strategy)
+            return self._package_result(strategy)
         return None
 
     def _package_result(self, strategy: "SupervisedTemplate") -> MetricResult:
@@ -248,8 +244,7 @@ class GenericExperienceForwardTransfer(
             metric_name = get_metric_name(self, strategy, add_experience=True)
             plot_x_position = strategy.clock.train_iterations
 
-            metric_values = [MetricValue(self, metric_name, result, plot_x_position)]
-            return metric_values
+            return [MetricValue(self, metric_name, result, plot_x_position)]
 
     @abstractmethod
     def metric_update(self, strategy):
@@ -420,7 +415,7 @@ class GenericStreamForwardTransfer(
 
         phase_name, _ = phase_and_task(strategy)
         stream = stream_type(strategy.experience)
-        metric_name = "{}/{}_phase/{}_stream".format(str(self), phase_name, stream)
+        metric_name = f"{str(self)}/{phase_name}_phase/{stream}_stream"
         plot_x_position = strategy.clock.train_iterations
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]

@@ -115,10 +115,7 @@ class ClassBalancedBufferWithLogits(BalancedExemplarsBuffer):
 
         # associate lengths to classes
         lens = self.get_group_lengths(len(self.seen_classes))
-        class_to_len = {}
-        for class_id, ll in zip(self.seen_classes, lens):
-            class_to_len[class_id] = ll
-
+        class_to_len = dict(zip(self.seen_classes, lens))
         # update buffers with new data
         for class_id, new_data_c in cl_datasets.items():
             ll = class_to_len[class_id]

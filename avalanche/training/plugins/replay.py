@@ -100,7 +100,7 @@ class ReplayPlugin(SupervisedPlugin, supports_distributed=True):
 
         assert strategy.adapted_dataset is not None
 
-        other_dataloader_args = dict()
+        other_dataloader_args = {}
 
         if "ffcv_args" in kwargs:
             other_dataloader_args["ffcv_args"] = kwargs["ffcv_args"]

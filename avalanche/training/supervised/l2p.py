@@ -117,7 +117,7 @@ class LearningToPrompt(SupervisedTemplate):
 
         for n, p in model.named_parameters():
             if n.startswith(
-                tuple(["blocks", "patch_embed", "cls_token", "norm", "pos_embed"])
+                ("blocks", "patch_embed", "cls_token", "norm", "pos_embed")
             ):
                 p.requires_grad = False
 

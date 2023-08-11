@@ -123,10 +123,7 @@ def accuracy_matrix_metrics() -> List[PluginMetric]:
     :return: A list of plugin metrics.
     """
 
-    metrics = []
-    metrics.append(AccuracyMatrixPluginMetric())
-
-    return metrics
+    return [AccuracyMatrixPluginMetric()]
 
 
 __all__ = [

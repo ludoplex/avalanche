@@ -112,7 +112,7 @@ class MER(SupervisedMetaLearningTemplate):
         super()._before_inner_updates(**kwargs)
 
     def _inner_updates(self, **kwargs):
-        for inner_itr in range(self.n_inner_steps):
+        for _ in range(self.n_inner_steps):
             x, y, t = self.mb_x, self.mb_y, self.mb_task_id
             x, y, t = self.buffer.get_batch(x, y, t)
 
@@ -130,23 +130,20 @@ class MER(SupervisedMetaLearningTemplate):
 
             # Within-batch Reptile update
             w_aft_t = self.model.state_dict()
-            load_dict = {}
-            for name, param in self.model.named_parameters():
-                load_dict[name] = w_bef_t[name] + (
-                    (w_aft_t[name] - w_bef_t[name]) * self.beta
-                )
-
+            load_dict = {
+                name: w_bef_t[name] + ((w_aft_t[name] - w_bef_t[name]) * self.beta)
+                for name, param in self.model.named_parameters()
+            }
             self.model.load_state_dict(load_dict, strict=False)
 
     def _outer_update(self, **kwargs):
         w_aft = self.model.state_dict()
 
-        load_dict = {}
-        for name, param in self.model.named_parameters():
-            load_dict[name] = self.w_bef[name] + (
-                (w_aft[name] - self.w_bef[name]) * self.gamma
-            )
-
+        load_dict = {
+            name: self.w_bef[name]
+            + ((w_aft[name] - self.w_bef[name]) * self.gamma)
+            for name, param in self.model.named_parameters()
+        }
         self.model.load_state_dict(load_dict, strict=False)
 
         with torch.no_grad():

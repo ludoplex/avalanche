@@ -143,9 +143,7 @@ class CocoEvaluator(DetectionEvaluator[Dict[str, COCOeval], TCommonDetectionOutp
                 self.coco_eval[iou_type], self.img_ids, self.eval_imgs[iou_type]
             )
 
-        if dist.is_initialized():
-            return dist.get_rank() == 0
-        return True
+        return dist.get_rank() == 0 if dist.is_initialized() else True
 
     def evaluate(
         self,
@@ -162,7 +160,7 @@ class CocoEvaluator(DetectionEvaluator[Dict[str, COCOeval], TCommonDetectionOutp
                 with redirect_stdout(io.StringIO()):
                     eval_data.summarize()
                 metrics_stats = eval_data.stats
-                if iou == "segm" or iou == "bbox":
+                if iou in ["segm", "bbox"]:
                     for metric_name, metric_value in zip(
                         COCO_STATS_DET_ORDER, metrics_stats
                     ):
@@ -176,10 +174,7 @@ class CocoEvaluator(DetectionEvaluator[Dict[str, COCOeval], TCommonDetectionOutp
         if dist.is_initialized():
             dist.barrier()
 
-        if main_process:
-            return result_dict, self.coco_eval
-        else:
-            return None
+        return (result_dict, self.coco_eval) if main_process else None
 
     def summarize(self):
         for iou_type, coco_eval in self.coco_eval.items():
@@ -289,17 +284,11 @@ def convert_to_xywh(boxes):
 
 
 def is_dist_avail_and_initialized():
-    if not dist.is_available():
-        return False
-    if not dist.is_initialized():
-        return False
-    return True
+    return False if not dist.is_available() else bool(dist.is_initialized())
 
 
 def get_world_size():
-    if not is_dist_avail_and_initialized():
-        return 1
-    return dist.get_world_size()
+    return 1 if not is_dist_avail_and_initialized() else dist.get_world_size()
 
 
 def all_gather(data):
@@ -328,10 +317,7 @@ def merge(
     for p in all_img_ids:
         merged_img_ids.extend(p)
 
-    merged_eval_imgs = []
-    for p in all_eval_imgs:
-        merged_eval_imgs.append(p)
-
+    merged_eval_imgs = list(all_eval_imgs)
     merged_img_ids_np = np.array(merged_img_ids)
     merged_eval_imgs_np = np.concatenate(merged_eval_imgs, 2)
 

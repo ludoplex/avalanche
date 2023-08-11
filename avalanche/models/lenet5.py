@@ -36,5 +36,4 @@ class LeNet5(nn.Module):
         x = self.feature_extractor(x)
         x = torch.flatten(x, 1)
         x = self.ff(x)
-        logits = self.classifier(x)
-        return logits
+        return self.classifier(x)

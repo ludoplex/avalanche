@@ -214,18 +214,17 @@ class MultiDatasetDataLoader:
             never_ending=self.never_ending,
         )
 
-        if has_ffcv_support(self.datasets):
-            loader = self._make_ffcv_loader(
+        return (
+            self._make_ffcv_loader(
                 self.datasets,
                 multi_dataset_batch_sampler,
             )
-        else:
-            loader = self._make_pytorch_loader(
+            if has_ffcv_support(self.datasets)
+            else self._make_pytorch_loader(
                 self.datasets,
                 multi_dataset_batch_sampler,
             )
-
-        return loader
+        )
 
     def _make_pytorch_loader(
         self, datasets: List[AvalancheDataset], batch_sampler: Sampler[List[int]]
@@ -256,7 +255,7 @@ class MultiDatasetDataLoader:
 
     def _extract_ffcv_args(self, loader_args):
         loader_args = dict(loader_args)
-        ffcv_args: Dict[str, Any] = loader_args.pop("ffcv_args", dict())
+        ffcv_args: Dict[str, Any] = loader_args.pop("ffcv_args", {})
         ffcv_args.setdefault("device", None)
         ffcv_args.setdefault("print_ffcv_summary", False)
 
@@ -339,10 +338,7 @@ class GroupBalancedDataLoader(MultiDatasetDataLoader):
         # check if batch_size is larger than or equal to the number of datasets
         assert batch_size >= len(datasets)
 
-        # divide the batch between all datasets in the group
-        ds_batch_size = batch_size // len(datasets)
-        remaining = batch_size % len(datasets)
-
+        ds_batch_size, remaining = divmod(batch_size, len(datasets))
         batch_sizes = []
         for _ in datasets:
             bs = ds_batch_size
@@ -527,11 +523,7 @@ class ReplayDataLoader(MultiDatasetDataLoader):
                 "and current data."
             )
 
-            # Make the batch size balanced between tasks
-            # The remainder (remaining_example) will be distributed
-            # across tasks by "self._get_datasets_and_batch_sizes(...)"
-            single_group_batch_size = batch_size_mem // num_keys
-            remaining_example = batch_size_mem % num_keys
+            single_group_batch_size, remaining_example = divmod(batch_size_mem, num_keys)
         else:
             single_group_batch_size = batch_size_mem
             remaining_example = 0
@@ -551,23 +543,16 @@ class ReplayDataLoader(MultiDatasetDataLoader):
             task_balanced_dataloader,
         )
 
-        # Obtain the subset with the highest number of iterations
-        # This is the one that defines when an epoch ends
-        # Note: this is aligned with the behavior of the legacy
-        # multi-loader version of ReplayDataLoader
-        loaders_for_len_estimation = []
-
-        for data_subset, subset_mb_size in zip(data_subsets, data_batch_sizes):
-            loaders_for_len_estimation.append(
-                _make_data_loader(
-                    data_subset,
-                    distributed_sampling,
-                    kwargs,
-                    subset_mb_size,
-                    force_no_workers=True,
-                )[0]
-            )
-
+        loaders_for_len_estimation = [
+            _make_data_loader(
+                data_subset,
+                distributed_sampling,
+                kwargs,
+                subset_mb_size,
+                force_no_workers=True,
+            )[0]
+            for data_subset, subset_mb_size in zip(data_subsets, data_batch_sizes)
+        ]
         longest_data_subset_idx = (
             np.array(len(d) for d in loaders_for_len_estimation).argmax().item()
         )
@@ -596,11 +581,11 @@ class ReplayDataLoader(MultiDatasetDataLoader):
             for task_id in data.task_set:
                 dataset = data.task_set[task_id]
 
-                if batch_size_per_task:
-                    current_batch_size = batch_sizes_def[task_id]
-                else:
-                    current_batch_size = batch_sizes_def
-
+                current_batch_size = (
+                    batch_sizes_def[task_id]
+                    if batch_size_per_task
+                    else batch_sizes_def
+                )
                 if remaining_examples > 0:
                     current_batch_size += 1
                     remaining_examples -= 1
@@ -681,11 +666,11 @@ class MultiDatasetSampler(Sampler[List[int]]):
                 is_termination_dataset = [False] * number_of_datasets
             else:
                 # Obtain the indices for the "main" dataset first
-                sampling_dataset_order = [self.termination_dataset_idx] + list(
+                sampling_dataset_order = [self.termination_dataset_idx] + [
                     x
                     for x in range(number_of_datasets)
                     if x != self.termination_dataset_idx
-                )
+                ]
                 is_termination_dataset = [True] + ([False] * (number_of_datasets - 1))
 
             for dataset_idx, is_term_dataset in zip(
@@ -717,13 +702,12 @@ class MultiDatasetSampler(Sampler[List[int]]):
                     if is_term_dataset:
                         # The main dataset terminated -> exit
                         return
-                    else:
-                        # Not the main dataset
-                        # Happens if oversample_small_tasks is False
-                        # Remove the dataset and sampler from the list
-                        samplers_list[dataset_idx] = None
-                        sampler_iterators[dataset_idx] = None
-                        continue
+                    # Not the main dataset
+                    # Happens if oversample_small_tasks is False
+                    # Remove the dataset and sampler from the list
+                    samplers_list[dataset_idx] = None
+                    sampler_iterators[dataset_idx] = None
+                    continue
 
                 assert next_batch_indices is not None
                 next_batch_indices = np.array(next_batch_indices)
@@ -839,8 +823,7 @@ def _make_sampler(
         force_no_workers=True,
     )
 
-    sampler = loader.batch_sampler
-    return sampler
+    return loader.batch_sampler
 
 
 __all__ = [

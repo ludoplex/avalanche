@@ -224,9 +224,9 @@ def enable_ffcv(
 
             if force_overwrite or not dataset_ffcv_path.exists():
                 if print_summary:
-                    print("Serializing dataset to:", str(dataset_ffcv_path))
+                    print("Serializing dataset to:", dataset_ffcv_path)
 
-                writer_kwarg_parameters = dict()
+                writer_kwarg_parameters = {}
                 if "page_size" in ffcv_parameters:
                     writer_kwarg_parameters["page_size"] = ffcv_parameters["page_size"]
 
@@ -274,10 +274,10 @@ class _SuppressTransformations:
 
     def __init__(self, dataset):
         self.dataset = dataset
-        self._held_out_transforms = dict()
+        self._held_out_transforms = {}
 
     def __enter__(self):
-        self._held_out_transforms = dict()
+        self._held_out_transforms = {}
         for transform_field in _SuppressTransformations.SUPPRESS_FIELDS:
             if hasattr(self.dataset, transform_field):
                 field_content = getattr(self.dataset, transform_field)
@@ -316,9 +316,7 @@ class _GetItemDataset:
         elements_from_attributes = []
         for idx in indices:
             reversed_idx = self.reversed_indices[int(idx)]
-            values = []
-            for da in self.get_item_data_attributes:
-                values.append(da[reversed_idx])
+            values = [da[reversed_idx] for da in self.get_item_data_attributes]
             elements_from_attributes.append(tuple(values))
 
         return tuple(self.collate_fn(elements_from_attributes))
@@ -343,12 +341,7 @@ def has_ffcv_support(datasets: List[AvalancheDataset]):
     except Exception:
         return False
 
-    if flat_set is None:
-        return False
-
-    leaf_dataset = flat_set[0]
-
-    return hasattr(leaf_dataset, "ffcv_info")
+    return False if flat_set is None else hasattr(flat_set[0], "ffcv_info")
 
 
 class _MappedBatchsampler(Sampler[List[int]]):
@@ -375,10 +368,9 @@ class _MappedBatchsampler(Sampler[List[int]]):
     def set_epoch(self, epoch: int):
         if hasattr(self.batch_sampler, "set_epoch"):
             self.batch_sampler.set_epoch(epoch)
-        else:
-            if hasattr(self.batch_sampler, "sampler"):
-                if hasattr(self.batch_sampler.sampler, "set_epoch"):
-                    self.batch_sampler.sampler.set_epoch(epoch)
+        elif hasattr(self.batch_sampler, "sampler"):
+            if hasattr(self.batch_sampler.sampler, "set_epoch"):
+                self.batch_sampler.sampler.set_epoch(epoch)
 
 
 class HybridFfcvLoader:
@@ -526,12 +518,9 @@ class HybridFfcvLoader:
             device = ffcv_info.device
         device = torch.device(device)
 
-        # Map the indices so that we know how leaf
-        # dataset indices are mapped in the AvalancheDataset
-        reversed_indices = dict()
-        for avl_idx, leaf_idx in enumerate(indices):
-            reversed_indices[leaf_idx] = avl_idx
-
+        reversed_indices = {
+            leaf_idx: avl_idx for avl_idx, leaf_idx in enumerate(indices)
+        }
         # We will use the GetItemDataset to get those Avalanche-specific
         # dynamic fields that are not loaded by FFCV, such as the task label
         get_item_dataset = _GetItemDataset(dataset, reversed_indices=reversed_indices)
@@ -571,7 +560,7 @@ class HybridFfcvLoader:
             no_issues = check_transforms_consistency(field_decoder)
 
             if print_summary and no_issues:
-                print(f"No issues for this field")
+                print("No issues for this field")
 
         if print_summary:
             print("### The final chain of transformations is: ###")
@@ -658,9 +647,7 @@ class HybridFfcvLoader:
                     element = element.to(self.device, non_blocking=True)
                 elements_from_attributes_device.append(element)
 
-            overall_batch = tuple(batch) + tuple(elements_from_attributes_device)
-
-            yield overall_batch
+            yield tuple(batch) + tuple(elements_from_attributes_device)
 
     def __len__(self):
         return len(self.batch_sampler)

@@ -86,7 +86,7 @@ class CLEARDataset(DownloadableDataset):
 
         for name, base_url in target_module:
             if self.verbose:
-                print("Downloading " + name + "...")
+                print(f"Downloading {name}...")
             url = os.path.join(base_url, name)
             self._download_and_extract_archive(
                 url=url, file_name=name, checksum=None, remove_archive=True
@@ -114,7 +114,7 @@ class CLEARDataset(DownloadableDataset):
 
         filelist_folder_path = train_folder_path / "filelists"
 
-        filelist_name = f"all.txt"
+        filelist_name = "all.txt"
 
         filelists = []
         for bucket_index in self.bucket_indices:
@@ -189,7 +189,7 @@ class CLEARDataset(DownloadableDataset):
             base_msg += url
             base_msg += "\n"
 
-        base_msg += "and place these files in " + str(self.root)
+        base_msg += f"and place these files in {str(self.root)}"
 
         return base_msg
 
@@ -355,13 +355,12 @@ class _CLEARImage(CLEARDataset):
         """Return self._paths_and_targets with root appended or not"""
         if not root_appended:
             return self._paths_and_targets
-        else:
-            paths_and_targets: List[List[Tuple[Path, int]]] = []
-            for path_and_target_list in self._paths_and_targets:
-                paths_and_targets.append([])
-                for img_path, target in path_and_target_list:
-                    paths_and_targets[-1].append((self.root / img_path, target))
-            return paths_and_targets
+        paths_and_targets: List[List[Tuple[Path, int]]] = []
+        for path_and_target_list in self._paths_and_targets:
+            paths_and_targets.append([])
+            for img_path, target in path_and_target_list:
+                paths_and_targets[-1].append((self.root / img_path, target))
+        return paths_and_targets
 
     def __getitem__(self, index):
         img_path = self.paths[index]
@@ -426,7 +425,7 @@ class _CLEARFeature(CLEARDataset):
         :param target_transform: The transformations to apply to the Y values.
         """
         self.split = split
-        assert self.split in ["all", "train", "test"], "Invalid split option"
+        assert self.split in {"all", "train", "test"}, "Invalid split option"
 
         if self.split == "all":
             assert seed is None, "Specify a seed if not splitting train:test"

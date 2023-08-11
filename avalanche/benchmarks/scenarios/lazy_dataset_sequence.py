@@ -62,7 +62,7 @@ class LazyDatasetSequence(Sequence[TCLDataset]):
         The ID of the next experience that will be generated.
         """
 
-        self._loaded_experiences: Dict[int, TCLDataset] = dict()
+        self._loaded_experiences: Dict[int, TCLDataset] = {}
         """
         The sequence of experiences obtained from the generator.
         """
@@ -138,13 +138,12 @@ class LazyDatasetSequence(Sequence[TCLDataset]):
         indexing_collate: Callable[
             [Iterable[TCLDataset]], Sequence[TCLDataset]
         ] = lambda x: list(x)
-        result = manage_advanced_indexing(
+        return manage_advanced_indexing(
             exp_idx,
             self._get_experience_and_load_if_needed,
             len(self),
             indexing_collate,
         )
-        return result
 
     def _get_experience_and_load_if_needed(self, exp_idx: int) -> TCLDataset:
         """
@@ -153,7 +152,7 @@ class LazyDatasetSequence(Sequence[TCLDataset]):
         This will load intermediate experiences if needed.
         """
 
-        exp_idx = int(exp_idx)
+        exp_idx = exp_idx
         self.load_all_experiences(exp_idx)
         if exp_idx not in self._loaded_experiences:
             raise RuntimeError(f"Experience {exp_idx} has been dropped")
@@ -170,7 +169,7 @@ class LazyDatasetSequence(Sequence[TCLDataset]):
         :return: The dataset associated to the experience or None if the
             experience has not been loaded yet or if it has been dropped.
         """
-        exp_idx = int(exp_idx)  # Handle single element tensors
+        exp_idx = exp_idx
         if exp_idx >= len(self):
             raise IndexError(f"The stream doesn't contain {exp_idx+1}" f"experiences")
 
@@ -193,7 +192,7 @@ class LazyDatasetSequence(Sequence[TCLDataset]):
         :return: None
         """
 
-        to_exp = int(to_exp)  # Handle single element tensors
+        to_exp = to_exp
         if to_exp < 0:
             return
 
@@ -213,11 +212,7 @@ class LazyDatasetSequence(Sequence[TCLDataset]):
             the whole stream will be loaded.
         :return: None
         """
-        if to_exp is None:
-            to_exp = len(self) - 1
-        else:
-            to_exp = int(to_exp)  # Handle single element tensors
-
+        to_exp = len(self) - 1 if to_exp is None else int(to_exp)
         if to_exp >= len(self):
             raise IndexError(f"The stream doesn't contain {to_exp+1}" f"experiences")
 

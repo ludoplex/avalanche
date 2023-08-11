@@ -39,14 +39,7 @@ def main(cuda: int):
     benchmark_type = "cifar100"
 
     # --- BENCHMARK CREATION
-    if benchmark_type == "mnist":
-        benchmark = SplitMNIST(
-            n_experiences=5, seed=42, class_ids_from_zero_from_first_exp=True
-        )
-    elif benchmark_type == "core50":
-        benchmark = CORe50()
-        benchmark.n_classes = 50
-    elif benchmark_type == "cifar100":
+    if benchmark_type == "cifar100":
         cifar100_train_transform = Compose(
             [
                 ToTensor(),
@@ -66,6 +59,13 @@ def main(cuda: int):
             shuffle=True,
             train_transform=cifar100_train_transform,
             eval_transform=cifar100_eval_transform,
+        )
+    elif benchmark_type == "core50":
+        benchmark = CORe50()
+        benchmark.n_classes = 50
+    elif benchmark_type == "mnist":
+        benchmark = SplitMNIST(
+            n_experiences=5, seed=42, class_ids_from_zero_from_first_exp=True
         )
     elif benchmark_type == "tinyimagenet":
         benchmark = SplitTinyImageNet()

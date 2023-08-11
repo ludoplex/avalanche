@@ -57,20 +57,12 @@ class PixelsPermutation(object):
             raise ValueError("Invalid input: must be a PIL image or a Tensor")
 
         image_as_tensor: Tensor
-        if is_image:
-            image_as_tensor = self._to_tensor(img)
-        else:
-            image_as_tensor = img
-
+        image_as_tensor = self._to_tensor(img) if is_image else img
         image_as_tensor = image_as_tensor.view(-1)[self.permutation].view(
             *image_as_tensor.shape
         )
 
-        if is_image:
-            img = self._to_image(image_as_tensor)
-        else:
-            img = image_as_tensor
-
+        img = self._to_image(image_as_tensor) if is_image else image_as_tensor
         return img
 
 

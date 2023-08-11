@@ -21,10 +21,10 @@ from avalanche.distributed.distributed_consistency_verification import hash_tens
 class _Singleton(type):
     _instances: Dict[Any, Any] = {}
 
-    def __call__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            cls._instances[cls] = super(_Singleton, cls).__call__(*args, **kwargs)
-        return cls._instances[cls]
+    def __call__(self, *args, **kwargs):
+        if self not in self._instances:
+            self._instances[self] = super(_Singleton, self).__call__(*args, **kwargs)
+        return self._instances[self]
 
 
 class RollingSeedContext(object):
@@ -151,11 +151,7 @@ class _DistributedHelperCls(object):
         use_cuda = use_cuda and torch.cuda.is_available()
 
         if backend is None:
-            if use_cuda:
-                backend = "nccl"
-            else:
-                backend = "gloo"
-
+            backend = "nccl" if use_cuda else "gloo"
         if backend == "nccl" and not use_cuda:
             warnings.warn("Bad configuration: using NCCL, but you set use_cuda=False!")
 
@@ -192,14 +188,8 @@ class _DistributedHelperCls(object):
 
         :return: an int, describing the device to use. -1 for CPU.
         """
-        if self.is_distributed:
-            device_id = self.rank
-        else:
-            device_id = 0
-
         if self.use_cuda:
-            return device_id
-
+            return self.rank if self.is_distributed else 0
         return -1
 
     def make_device(self, set_cuda_device: bool = False) -> torch.device:
@@ -213,11 +203,7 @@ class _DistributedHelperCls(object):
         :return: The default device to be used for `torch.distributed`
             communications.
         """
-        if self.is_distributed:
-            device_id = self.rank
-        else:
-            device_id = 0
-
+        device_id = self.rank if self.is_distributed else 0
         if self.use_cuda and device_id >= 0:
             ref_device = torch.device(f"cuda:{device_id}")
             if set_cuda_device:
@@ -236,22 +222,20 @@ class _DistributedHelperCls(object):
             running a distributed training, or the model itself if running a
             single-process training.
         """
-        # Note: find_unused_parameters is needed for multi task models.
-        if self.is_distributed:
-            if self.forced_cuda_comm or self.use_cuda:
-                # forced_cuda_comm is True if using NCCL; use_cuda may be true
-                # even when not using NCCL.
-                # User already warned if using NCCL with use_cuda==False.
-                # device_ids must be a single device id
-                # (an int, a device object or a str)
-                # If not set, output_device defaults to device_ids[0]
-                return DistributedDataParallel(
-                    model, device_ids=[self.make_device()], find_unused_parameters=True
-                )
-            else:
-                return DistributedDataParallel(model, find_unused_parameters=True)
-        else:
+        if not self.is_distributed:
             return model
+        if self.forced_cuda_comm or self.use_cuda:
+            # forced_cuda_comm is True if using NCCL; use_cuda may be true
+            # even when not using NCCL.
+            # User already warned if using NCCL with use_cuda==False.
+            # device_ids must be a single device id
+            # (an int, a device object or a str)
+            # If not set, output_device defaults to device_ids[0]
+            return DistributedDataParallel(
+                model, device_ids=[self.make_device()], find_unused_parameters=True
+            )
+        else:
+            return DistributedDataParallel(model, find_unused_parameters=True)
 
     def unwrap_model(self, model: Module) -> Module:
         """
@@ -260,10 +244,7 @@ class _DistributedHelperCls(object):
         :param model: A model to be unwrapped.
         :return: The unwrapped model.
         """
-        if isinstance(model, DistributedDataParallel):
-            return model.module
-
-        return model
+        return model.module if isinstance(model, DistributedDataParallel) else model
 
     def set_random_seeds(self, random_seed):
         """
@@ -430,12 +411,7 @@ class _DistributedHelperCls(object):
         for i, t in enumerate(all_tensors_shape):
             for x in range(len(t)):
                 if t[x] == 0:
-                    if x == 0:
-                        # Tensor with 0-length shape
-                        all_tensors_shape[i] = t[: x + 1]
-                    else:
-                        all_tensors_shape[i] = t[:x]
-
+                    all_tensors_shape[i] = t[: x + 1] if x == 0 else t[:x]
                     break
 
         return [t_shape.tolist() for t_shape in all_tensors_shape]
@@ -475,10 +451,7 @@ class _DistributedHelperCls(object):
 
         if same_shape:
             # Same size for all tensors
-            if len(tensor.shape) > 0:
-                tensor_size = list(tensor.shape)
-            else:
-                tensor_size = [0]
+            tensor_size = list(tensor.shape) if len(tensor.shape) > 0 else [0]
             all_tensors_shape = [tensor_size for _ in range(self.world_size)]
         elif shapes is not None:
             # Shapes given by the user
@@ -499,11 +472,9 @@ class _DistributedHelperCls(object):
             all_tensors_numel = []
             dtype = tensor.dtype
             for t_shape in all_tensors_shape:
-                if t_shape[0] == 0 and len(t_shape) == 1:
-                    # Tensor with 0-length shape
-                    curr_size = 1
-                else:
-                    curr_size = 1
+                # Tensor with 0-length shape
+                curr_size = 1
+                if t_shape[0] != 0 or len(t_shape) != 1:
                     for t_s in t_shape:
                         curr_size *= t_s
                 all_tensors_numel.append(curr_size)
@@ -582,7 +553,7 @@ class _DistributedHelperCls(object):
 
         if len(set(tensors_hashes)) != 1:
             # Equal tensors
-            raise ValueError("Different tensors. Got hashes: {}".format(tensors_hashes))
+            raise ValueError(f"Different tensors. Got hashes: {tensors_hashes}")
 
     def check_equal_objects(self, obj: Any):
         """
@@ -604,8 +575,7 @@ class _DistributedHelperCls(object):
             o_bt = _base_typed(o)
             if obj_bt != o_bt:
                 raise ValueError(
-                    "Different objects (ranks this={}, remote={}). "
-                    "Got this={}, remote={}".format(self.rank, i, obj, o)
+                    f"Different objects (ranks this={self.rank}, remote={i}). Got this={obj}, remote={o}"
                 )
 
     def _prepare_for_distributed_comm(self, tensor: Tensor):
@@ -623,11 +593,7 @@ class _DistributedHelperCls(object):
         """
         original_device = tensor.device
         copy_back = self.forced_cuda_comm and not tensor.is_cuda
-        if self.forced_cuda_comm:
-            tensor_distributed = tensor.cuda()
-        else:
-            tensor_distributed = tensor
-
+        tensor_distributed = tensor.cuda() if self.forced_cuda_comm else tensor
         return tensor_distributed, (original_device, copy_back, tensor)
 
     def _revert_to_original_device(self, tensor_distributed, orig_data):
@@ -733,9 +699,8 @@ class _DistributedHelperCls(object):
             return device_or_map
 
         device = torch.device(device_or_map)
-        map_location = dict()
+        map_location = {"cpu": "cpu"}
 
-        map_location["cpu"] = "cpu"
         for cuda_idx in range(100):
             map_location[f"cuda:{cuda_idx}"] = str(device)
         return map_location
@@ -755,11 +720,7 @@ def _base_typed(obj):
     if from_numpy or from_pytorch:
         return obj.tolist()
 
-    if (
-        T in BASE_TYPES
-        or callable(obj)
-        or ((from_numpy or from_pytorch) and not isinstance(T, Iterable))
-    ):
+    if T in BASE_TYPES or callable(obj):
         return obj
 
     if isinstance(obj, Dict):

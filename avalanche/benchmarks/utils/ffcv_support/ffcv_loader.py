@@ -167,12 +167,9 @@ class _CustomLoader(FFCVLoader):
         if hasattr(self.batch_sampler, "set_epoch"):
             # Supports batch samplers with set_epoch method
             self.batch_sampler.set_epoch(self.next_epoch)
-        else:
-            # Standard setup: the batch sampler wraps a TraversalOrder or
-            # a distributed sampler
-            if hasattr(self.batch_sampler, "sampler"):
-                if hasattr(self.batch_sampler.sampler, "set_epoch"):
-                    self.batch_sampler.sampler.set_epoch(self.next_epoch)
+        elif hasattr(self.batch_sampler, "sampler"):
+            if hasattr(self.batch_sampler.sampler, "set_epoch"):
+                self.batch_sampler.sampler.set_epoch(self.next_epoch)
 
 
 __all__ = ["_CustomLoader"]

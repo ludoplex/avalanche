@@ -38,7 +38,7 @@ def check_vision_benchmark(
             if len(other) > 0:
                 print("T tensor:", other[0].shape)
             img = ToPILImage()(x[0])
-            plt.title("Experience: " + str(exp.current_experience))
+            plt.title(f"Experience: {str(exp.current_experience)}")
             plt.imshow(img)
             plt.show()
             break  # Show only an image for each experience

@@ -72,13 +72,7 @@ def _indexes_grouped_by_classes(
             result_per_class[search_element].sort()
         result.extend(result_per_class[search_element])
 
-    if result == sequence_list:
-        # The resulting index order is the same as the input one
-        # Return None to flag that the whole sequence can be
-        # taken as it already is
-        return None
-
-    return result
+    return None if result == sequence_list else result
 
 
 def _indexes_without_grouping(
@@ -101,14 +95,14 @@ def _indexes_without_grouping(
     else:
         # Set based "in" operator is **much** faster that its list counterpart!
         search_elements_set = set(search_elements)
-        result = []
-        for idx, element in enumerate(sequence):
-            if element in search_elements_set:
-                result.append(idx)
-
+        result = [
+            idx
+            for idx, element in enumerate(sequence)
+            if element in search_elements_set
+        ]
     if sort_indexes:
         result.sort()
-    elif not sort_indexes and len(result) == len(sequence):
+    elif len(result) == len(sequence):
         # All patterns selected. Also, no sorting is required
         # Return None to flag that the whole sequence can be
         # taken as it already is
