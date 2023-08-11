@@ -93,10 +93,7 @@ def _ffcv_infer_encoder(value, ffcv_parameters: "FFCVParameters") -> Optional["F
     if isinstance(value, Tensor):
         return TorchTensorField(value.dtype, shape=value.shape)
 
-    if isinstance(value, Image):
-        return _image_encoder(ffcv_parameters)
-
-    return None
+    return _image_encoder(ffcv_parameters) if isinstance(value, Image) else None
 
 
 def _ffcv_infer_decoder(
@@ -151,26 +148,21 @@ def _ffcv_infer_decoder(
     if isinstance(value, Tensor):
         return [NDArrayDecoder(), ToTensor()]
 
-    if isinstance(value, Image):
-        return [SimpleRGBImageDecoder()]
-
-    return None
+    return [SimpleRGBImageDecoder()] if isinstance(value, Image) else None
 
 
 def _check_dataset_ffcv_encoder(dataset) -> "EncoderDef":
     """
     Returns the dataset-specific FFCV encoder definition, if available.
     """
-    encoder_fn_or_def = getattr(dataset, "_ffcv_encoder", None)
-    return encoder_fn_or_def
+    return getattr(dataset, "_ffcv_encoder", None)
 
 
 def _check_dataset_ffcv_decoder(dataset) -> "DecoderDef":
     """
     Returns the dataset-specific FFCV decoder definition, if available.
     """
-    decoder_fn_or_def = getattr(dataset, "_ffcv_decoder", None)
-    return decoder_fn_or_def
+    return getattr(dataset, "_ffcv_decoder", None)
 
 
 def _encoder_infer_all(

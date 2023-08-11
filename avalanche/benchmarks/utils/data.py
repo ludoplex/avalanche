@@ -103,7 +103,7 @@ class AvalancheDataset(IDataset[T_co]):
             applied by this dataset.
         :param transform_groups: Avalanche transform groups.
         """
-        if isinstance(datasets, TorchDataset) or isinstance(datasets, AvalancheDataset):
+        if isinstance(datasets, (TorchDataset, AvalancheDataset)):
             warnings.warn(
                 "AvalancheDataset constructor has been changed. "
                 "Please check the documentation for the correct usage. You can"
@@ -151,7 +151,7 @@ class AvalancheDataset(IDataset[T_co]):
             and len(flat_datas) >= 1
         ):
             # TODO: remove. shouldn't be needed but helps with flattening
-            if len(flat_datas) == 0:
+            if not flat_datas:
                 self._flat_data = _FlatDataWithTransform([])
             self._flat_data = flat_datas[0]
             if not isinstance(self._flat_data, _FlatDataWithTransform):
@@ -186,15 +186,14 @@ class AvalancheDataset(IDataset[T_co]):
         # Init data attributes
         ####################################
         # concat attributes from child datasets
-        new_data_attributes: Dict[str, DataAttribute] = dict()
+        new_data_attributes: Dict[str, DataAttribute] = {}
         if data_attributes is not None:
             new_data_attributes = {da.name: da for da in data_attributes}
             ld = sum(len(d) for d in datasets)
             for da in data_attributes:
                 if len(da) != ld:
                     raise ValueError(
-                        "Data attribute {} has length {} but the dataset "
-                        "has length {}".format(da.name, len(da), ld)
+                        f"Data attribute {da.name} has length {len(da)} but the dataset has length {ld}"
                     )
 
         self._data_attributes: Dict[str, DataAttribute] = OrderedDict()
@@ -327,11 +326,8 @@ class AvalancheDataset(IDataset[T_co]):
             assert name == new_value.name
             datacopy._data_attributes[name] = new_value
         else:
-            use_in_getitem = False
             prev_attr = datacopy._data_attributes.get(name, None)
-            if prev_attr is not None:
-                use_in_getitem = prev_attr.use_in_getitem
-
+            use_in_getitem = prev_attr.use_in_getitem if prev_attr is not None else False
             datacopy._data_attributes[name] = DataAttribute(
                 new_value, name=name, use_in_getitem=use_in_getitem
             )
@@ -343,14 +339,21 @@ class AvalancheDataset(IDataset[T_co]):
         return datacopy
 
     def __eq__(self, other: object):
-        for required_attr in ["_flat_data", "_data_attributes", "collate_fn"]:
-            if not hasattr(other, required_attr):
-                return False
-
-        return (
-            other._flat_data == self._flat_data
-            and self._data_attributes == other._data_attributes  # type: ignore
-            and self.collate_fn == other.collate_fn  # type: ignore
+        return next(
+            (
+                False
+                for required_attr in [
+                    "_flat_data",
+                    "_data_attributes",
+                    "collate_fn",
+                ]
+                if not hasattr(other, required_attr)
+            ),
+            (
+                other._flat_data == self._flat_data
+                and self._data_attributes == other._data_attributes  # type: ignore
+                and self.collate_fn == other.collate_fn  # type: ignore
+            ),
         )
 
     @overload
@@ -561,10 +564,9 @@ class _FlatDataWithTransform(FlatData[T_co]):
         self: TDataWTransform, idx: Union[int, slice]
     ) -> Union[T_co, TDataWTransform]:
         if isinstance(idx, (int, np.integer)):
-            elem = self._getitem_recursive_call(
+            return self._getitem_recursive_call(
                 idx, self._transform_groups.current_group
             )
-            return elem  # type: ignore
         else:
             return super().__getitem__(idx)
 

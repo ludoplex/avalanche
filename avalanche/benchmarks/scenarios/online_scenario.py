@@ -305,8 +305,7 @@ def split_online_stream(
 
     def exps_iter():
         for exp in original_stream:
-            for sub_exp in split_strategy(exp, experience_size):
-                yield sub_exp
+            yield from split_strategy(exp, experience_size)
 
     stream_name: str = getattr(original_stream, "name", "train")
     return CLStream(
@@ -390,7 +389,7 @@ class OnlineCLScenario(CLScenario[CLStream[DatasetExperience[TCLDataset]]]):
         streams: List[CLStream] = [online_train_stream]
         for s in original_streams:
             s_wrapped = wrap_stream(
-                new_name="original_" + s.name, new_benchmark=self, wrapped_stream=s
+                new_name=f"original_{s.name}", new_benchmark=self, wrapped_stream=s
             )
 
             streams.append(s_wrapped)

@@ -154,8 +154,7 @@ class Stream51(DownloadableDataset):
         # reorganize by clip
         data_list_result = []
         for v in new_data_list:
-            for x in v:
-                data_list_result.append(x)
+            data_list_result.extend(iter(v))
         return data_list_result
 
     @staticmethod
@@ -178,8 +177,7 @@ class Stream51(DownloadableDataset):
         # reorganize by class
         data_list = []
         for v in new_data_list:
-            for x in v:
-                data_list.append(x)
+            data_list.extend(iter(v))
         return data_list
 
     @staticmethod
@@ -241,9 +239,9 @@ class Stream51(DownloadableDataset):
         return len(self.samples)
 
     def __repr__(self):
-        fmt_str = "Dataset " + self.__class__.__name__ + "\n"
-        fmt_str += "    Number of datapoints: {}\n".format(self.__len__())
-        fmt_str += "    Root Location: {}\n".format(self.root)
+        fmt_str = f"Dataset {self.__class__.__name__}" + "\n"
+        fmt_str += f"    Number of datapoints: {self.__len__()}\n"
+        fmt_str += f"    Root Location: {self.root}\n"
         tmp = "    Transforms (if any): "
         fmt_str += "{0}{1}\n".format(
             tmp, self.transform.__repr__().replace("\n", "\n" + " " * len(tmp))

@@ -85,12 +85,12 @@ class MultiParamCompose(MultiParamTransform):
         self.max_params = -1
         self.min_params = -1
 
-        if len(transforms) > 0:
-            for tr in transforms:
-                self.param_def.append(
-                    MultiParamTransformCallable._detect_parameters(tr)
-                )
-            all_maxes = set([max_p for _, max_p in self.param_def])
+        if transforms:
+            self.param_def.extend(
+                MultiParamTransformCallable._detect_parameters(tr)
+                for tr in transforms
+            )
+            all_maxes = {max_p for _, max_p in self.param_def}
             if len(all_maxes) > 1:
                 warnings.warn(
                     "Transformations define a different number of parameters. "
@@ -103,7 +103,7 @@ class MultiParamCompose(MultiParamTransform):
                 self.max_param = -1  # At least one transform has an *args param
             else:
                 self.max_params = max(all_maxes)
-            self.min_params = min([min_p for min_p, _ in self.param_def])
+            self.min_params = min(min_p for min_p, _ in self.param_def)
 
     def __eq__(self, other):
         if self is other:
@@ -126,12 +126,10 @@ class MultiParamCompose(MultiParamTransform):
                     transform, min_par, max_par, *args
                 )
 
-        if len(args) == 1 and not force_tuple_output:
-            return args[0]  # Single return value (as an unwrapped value)
-        return args  # Multiple return values (as a tuple)
+        return args[0] if len(args) == 1 and not force_tuple_output else args
 
     def __repr__(self):
-        format_string = self.__class__.__name__ + "("
+        format_string = f"{self.__class__.__name__}("
         for t in self.transforms:
             format_string += "\n"
             format_string += "    {0}".format(t)
@@ -169,12 +167,10 @@ class MultiParamTransformCallable(MultiParamTransform):
             self.transform, self.min_params, self.max_params, *args
         )
 
-        if len(args) == 1 and not force_tuple_output:
-            return args[0]  # Single return value (as an unwrapped value)
-        return args  # Multiple return values (as a tuple)
+        return args[0] if len(args) == 1 and not force_tuple_output else args
 
     def __repr__(self):
-        format_string = self.__class__.__name__ + "("
+        format_string = f"{self.__class__.__name__}("
         format_string += "\n"
         format_string += "    {0}".format(self.transform)
         format_string += "\n)"
@@ -183,10 +179,7 @@ class MultiParamTransformCallable(MultiParamTransform):
     @staticmethod
     def _call_transform(transform_callable, _, max_par, *params):
         # Here we ignore the min_param
-        if max_par == -1:  # The transform accepts *args
-            n_params = len(params)
-        else:
-            n_params = min(max_par, len(params))
+        n_params = len(params) if max_par == -1 else min(max_par, len(params))
         params_list = list(params)
 
         transform_result = transform_callable(*params_list[:n_params])
@@ -231,14 +224,11 @@ class MultiParamTransformCallable(MultiParamTransform):
                     if param.default == Parameter.empty:
                         # Not optional
                         min_params += 1
-                        max_params += 1
-                    else:
-                        # Has a default value -> optional
-                        max_params += 1
+                    max_params += 1
                 elif param.kind == Parameter.VAR_POSITIONAL:  # *args
                     max_params = -1  # As for "infinite"
-                # elif param.kind == Parameter.VAR_KEYWORD  # **kwargs
-                # **kwargs can be safely ignored (they will be empty)
+                        # elif param.kind == Parameter.VAR_KEYWORD  # **kwargs
+                        # **kwargs can be safely ignored (they will be empty)
         return min_params, max_params
 
     @staticmethod
@@ -280,10 +270,10 @@ class TupleTransform(MultiParamTransform):
         return args_list
 
     def __str__(self):
-        return "TupleTransform({})".format(self.transforms)
+        return f"TupleTransform({self.transforms})"
 
     def __repr__(self):
-        return "TupleTransform({})".format(self.transforms)
+        return f"TupleTransform({self.transforms})"
 
     def __eq__(self, other):
         if self is other:
@@ -327,9 +317,7 @@ def flat_transforms_recursive(transforms: Union[List, Any], position: int) -> Li
             elif isinstance(transform, Sequence):
                 flattened_list.extend(transform)
                 must_flat = True
-            elif transform is None:
-                pass
-            else:
+            elif transform is not None:
                 flattened_list.append(transform)
 
         transforms = flattened_list

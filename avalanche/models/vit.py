@@ -6,10 +6,9 @@ def vit_tiny_patch16_224(pretrained=True, **kwargs):
     from avalanche.models.timm_vit import _create_vision_transformer
 
     model_kwargs = dict(patch_size=16, embed_dim=192, depth=12, num_heads=3, **kwargs)
-    model = _create_vision_transformer(
+    return _create_vision_transformer(
         "vit_tiny_patch16_224", pretrained=pretrained, **model_kwargs
     )
-    return model
 
 
 def vit_base_patch16_224(pretrained=True, **kwargs):
@@ -21,10 +20,9 @@ def vit_base_patch16_224(pretrained=True, **kwargs):
     from avalanche.models.timm_vit import _create_vision_transformer
 
     model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
-    model = _create_vision_transformer(
+    return _create_vision_transformer(
         "vit_base_patch16_224", pretrained=pretrained, **model_kwargs
     )
-    return model
 
 
 def vit_large_patch16_224(pretrained=False, **kwargs):
@@ -37,10 +35,9 @@ def vit_large_patch16_224(pretrained=False, **kwargs):
     from avalanche.models.timm_vit import _create_vision_transformer
 
     model_kwargs = dict(patch_size=16, embed_dim=1024, depth=24, num_heads=16, **kwargs)
-    model = _create_vision_transformer(
+    return _create_vision_transformer(
         "vit_large_patch16_224", pretrained=pretrained, **model_kwargs
     )
-    return model
 
 
 def vit_small_patch32_224(pretrained=True, **kwargs):
@@ -48,10 +45,9 @@ def vit_small_patch32_224(pretrained=True, **kwargs):
     from avalanche.models.timm_vit import _create_vision_transformer
 
     model_kwargs = dict(patch_size=32, embed_dim=384, depth=12, num_heads=6, **kwargs)
-    model = _create_vision_transformer(
+    return _create_vision_transformer(
         "vit_small_patch32_224", pretrained=pretrained, **model_kwargs
     )
-    return model
 
 
 def vit_base_patch32_224(pretrained=True, **kwargs):
@@ -63,10 +59,9 @@ def vit_base_patch32_224(pretrained=True, **kwargs):
     from avalanche.models.timm_vit import _create_vision_transformer
 
     model_kwargs = dict(patch_size=32, embed_dim=768, depth=12, num_heads=12, **kwargs)
-    model = _create_vision_transformer(
+    return _create_vision_transformer(
         "vit_base_patch32_224", pretrained=pretrained, **model_kwargs
     )
-    return model
 
 
 def vit_large_patch32_224(pretrained=True, **kwargs):
@@ -76,16 +71,14 @@ def vit_large_patch32_224(pretrained=True, **kwargs):
     from avalanche.models.timm_vit import _create_vision_transformer
 
     model_kwargs = dict(patch_size=32, embed_dim=1024, depth=24, num_heads=16, **kwargs)
-    model = _create_vision_transformer(
+    return _create_vision_transformer(
         "vit_large_patch32_224", pretrained=pretrained, **model_kwargs
     )
-    return model
 
 
 # Only for unittest
 def simpleMLP(num_classes=10, **kwargs):
-    model = SimpleMLP(input_size=6, hidden_size=10, num_classes=num_classes)
-    return model
+    return SimpleMLP(input_size=6, hidden_size=10, num_classes=num_classes)
 
 
 def create_model(model_name="", **kwargs):

@@ -52,9 +52,7 @@ class EWCPlugin(SupervisedPlugin):
         assert (decay_factor is not None) or (
             mode != "online"
         ), "You need to set `decay_factor` to use the `online` mode."
-        assert (
-            mode == "separate" or mode == "online"
-        ), "Mode must be separate or online."
+        assert mode in ["separate", "online"], "Mode must be separate or online."
 
         self.ewc_lambda = ewc_lambda
         self.mode = mode
@@ -160,7 +158,7 @@ class EWCPlugin(SupervisedPlugin):
             collate_fn=collate_fn,
             num_workers=num_workers,
         )
-        for i, batch in enumerate(dataloader):
+        for batch in dataloader:
             # get only input, target and task_id from the batch
             x, y, task_labels = batch[0], batch[1], batch[-1]
             x, y = x.to(device), y.to(device)

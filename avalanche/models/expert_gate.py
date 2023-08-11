@@ -25,8 +25,7 @@ def AE_loss(target, reconstruction):
     :param reconstruction: output of the autoencoder
     :return: mean squared error loss between the target and reconstruction
     """
-    reconstruction_loss = mse_loss(input=reconstruction, target=target, reduction="sum")
-    return reconstruction_loss
+    return mse_loss(input=reconstruction, target=target, reduction="sum")
 
 
 class ExpertAutoencoder(nn.Module):
@@ -232,10 +231,7 @@ class ExpertGate(nn.Module):
         # Process input for target
         target = sigmoid(autoencoder.feature_module(x))
 
-        # Error between reconstruction and input
-        error = AE_loss(target=target, reconstruction=reconstruction)
-
-        return error
+        return AE_loss(target=target, reconstruction=reconstruction)
 
     def forward(self, x):
         # If not in training mode, select the best expert for the input data

@@ -154,8 +154,7 @@ class HGNaive(avalanche.training.Naive):
 
     def criterion(self):
         mb_output = self.mb_output.view(-1, self.mb_output.size(-1))
-        ll = self._criterion(mb_output, self.mb_y.view(-1))
-        return ll
+        return self._criterion(mb_output, self.mb_y.view(-1))
 
 
 def main():

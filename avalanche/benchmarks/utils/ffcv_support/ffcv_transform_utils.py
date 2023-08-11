@@ -66,10 +66,7 @@ class CallableAdapter:
         return f"CallableAdapter({self.callable_obj})"
 
     def __call__(self, batch):
-        result = []
-        for element in batch:
-            result.append(self.callable_obj(element))
-
+        result = [self.callable_obj(element) for element in batch]
         if isinstance(batch, np.ndarray):
             return np.array(result)
         elif isinstance(batch, torch.Tensor):
@@ -198,12 +195,15 @@ def adapt_transforms(
                 # Already an FFCV transform
                 field_transforms.append(t)
             elif isinstance(t, PILToTensorTV):
-                field_transforms.append(ToTensorFFCV())
-                field_transforms.append(ToTorchImageFFCV())
+                field_transforms.extend((ToTensorFFCV(), ToTorchImageFFCV()))
             elif isinstance(t, ToTensorTV):
-                field_transforms.append(ToTensorFFCV())
-                field_transforms.append(ToTorchImageFFCV())
-                field_transforms.append(ModuleWrapper(ScaleFrom_0_255_To_0_1()))
+                field_transforms.extend(
+                    (
+                        ToTensorFFCV(),
+                        ToTorchImageFFCV(),
+                        ModuleWrapper(ScaleFrom_0_255_To_0_1()),
+                    )
+                )
             elif isinstance(t, ConvertTV):
                 field_transforms.append(ConvertFFCV(t.dtype))
             elif isinstance(t, RandomResizedCropTV):
@@ -403,11 +403,9 @@ def check_transforms_consistency(transformations, warn_gpu_to_cpu: bool = True):
         if isinstance(t, ToTensorFFCV):
             is_numpy = False
         elif isinstance(t, ToDeviceFFCV):
-            if (not is_cpu) and t.device.type == "cpu":
-                if warn_gpu_to_cpu:
-                    warnings.warn(
-                        f"Moving a Tensor from GPU to CPU is quite unusual..."
-                    )
+            if warn_gpu_to_cpu:
+                if (not is_cpu) and t.device.type == "cpu":
+                    warnings.warn("Moving a Tensor from GPU to CPU is quite unusual...")
                     had_issues = True
 
             is_cpu = t.device.type == "cpu"
@@ -536,7 +534,7 @@ class SmartModuleWrapper(Operation):
         self._to_device(previous_state)
         self._compute_smart_shape(previous_state)
 
-        state_changes = dict()
+        state_changes = {}
         if self.expected_out_type != "as_previous":
             # Output type != input type
             state_changes["dtype"] = self.expected_out_type
@@ -553,11 +551,10 @@ class SmartModuleWrapper(Operation):
 
         if self.expected_out_type == "as_previous":
             self.output_type = self.input_type
+        elif isinstance(self.expected_out_type, torch.dtype):
+            self.output_type = "torch"
         else:
-            if isinstance(self.expected_out_type, torch.dtype):
-                self.output_type = "torch"
-            else:
-                self.output_type = "numpy"
+            self.output_type = "numpy"
 
     def _to_device(self, previous_state: State):
         if previous_state.device.type != "cpu":
@@ -565,31 +562,29 @@ class SmartModuleWrapper(Operation):
                 self.module = self.module.to(previous_state.device)
 
     def _compute_smart_shape(self, previous_state: State):
-        if self.smart_reshape:
-            if self.input_type == "numpy":
-                h, w, c = previous_state.shape
+        if not self.smart_reshape:
+            return
+        if self.input_type == "numpy":
+            h, w, c = previous_state.shape
+        else:
+            c, h, w = previous_state.shape
+
+        patch_shape = True
+        if self.expected_shape != "as_previous":
+            if (
+                isinstance(self.expected_shape, int)
+                or len(self.expected_shape) == 1
+            ):
+                h = self.expected_shape
+                w = self.expected_shape
+            elif len(self.expected_shape) == 2:
+                h, w = self.expected_shape
             else:
-                c, h, w = previous_state.shape
+                # Completely user-managed
+                patch_shape = False
 
-            patch_shape = True
-            if self.expected_shape != "as_previous":
-                if (
-                    isinstance(self.expected_shape, int)
-                    or len(self.expected_shape) == 1
-                ):
-                    h = self.expected_shape
-                    w = self.expected_shape
-                elif len(self.expected_shape) == 2:
-                    h, w = self.expected_shape
-                else:
-                    # Completely user-managed
-                    patch_shape = False
-
-            if patch_shape:
-                if self.output_type == "numpy":
-                    self.expected_shape = (h, w, c)
-                else:
-                    self.expected_shape = (c, h, w)
+        if patch_shape:
+            self.expected_shape = (h, w, c) if self.output_type == "numpy" else (c, h, w)
 
 
 make_transform_defs()

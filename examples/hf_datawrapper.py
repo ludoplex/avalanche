@@ -80,9 +80,7 @@ class HFTextDataWrapper:
             self.dataset = self.dataset.map(preproc_func, batched=batched)
             to_remove = old_f - columns_to_keep
             self.dataset = self.dataset.remove_columns(list(to_remove))
-            print(
-                f"The following columns have been removed" "from dataset: {to_remove}"
-            )
+            print('The following columns have been removedfrom dataset: {to_remove}')
         print("Dataset features: ", self.dataset.features.keys())
 
     def to_avalanche_dataset(self, dataset_index):
@@ -148,8 +146,7 @@ class HGNaive(avalanche.training.Naive):
 
     def criterion(self):
         mb_output = self.mb_output.view(-1, self.mb_output.size(-1))
-        ll = self._criterion(mb_output, self.mb_y.view(-1))
-        return ll
+        return self._criterion(mb_output, self.mb_y.view(-1))
 
 
 def main():

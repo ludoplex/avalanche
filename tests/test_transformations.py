@@ -60,7 +60,7 @@ class TransformsTest(unittest.TestCase):
 
         boxes = []
         i = 0
-        while len(boxes) == 0:
+        while not boxes:
             x_orig, y_orig, t_orig = dataset[i]
             boxes = y_orig["boxes"]
             i += 1
@@ -118,7 +118,7 @@ class TransformsTest(unittest.TestCase):
 
         boxes = []
         i = 0
-        while len(boxes) == 0:
+        while not boxes:
             x_orig, y_orig, t_orig = dataset[i]
             boxes = y_orig["boxes"]
             i += 1

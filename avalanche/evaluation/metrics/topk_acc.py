@@ -101,17 +101,16 @@ class TopkAccuracy(Metric[Dict[int, float]]):
             )
 
     def _compute_topk_acc(self, pred, gt, top_k):
-        if self.__torchmetrics_requires_task:
-            num_classes = int(torch.max(torch.as_tensor(gt))) + 1
-            pred_t = torch.as_tensor(pred)
-            if len(pred_t.shape) > 1:
-                num_classes = max(num_classes, pred_t.shape[1])
-
-            return accuracy(
-                pred, gt, task="multiclass", num_classes=num_classes, top_k=self.top_k
-            )
-        else:
+        if not self.__torchmetrics_requires_task:
             return accuracy(pred, gt, top_k=self.top_k)
+        num_classes = int(torch.max(torch.as_tensor(gt))) + 1
+        pred_t = torch.as_tensor(pred)
+        if len(pred_t.shape) > 1:
+            num_classes = max(num_classes, pred_t.shape[1])
+
+        return accuracy(
+            pred, gt, task="multiclass", num_classes=num_classes, top_k=self.top_k
+        )
 
     def result_task_label(self, task_label: int) -> Dict[int, float]:
         """
@@ -180,11 +179,7 @@ class TopkAccuracyPluginMetric(GenericPluginMetric[Dict[int, float], TopkAccurac
         assert strategy.experience is not None
         # task labels defined for each experience
         task_labels = strategy.experience.task_labels
-        if len(task_labels) > 1:
-            # task labels defined for each pattern
-            task_labels = strategy.mb_task_id
-        else:
-            task_labels = task_labels[0]
+        task_labels = strategy.mb_task_id if len(task_labels) > 1 else task_labels[0]
         self._metric.update(strategy.mb_output, strategy.mb_y, task_labels)
 
 
@@ -208,7 +203,7 @@ class MinibatchTopkAccuracy(TopkAccuracyPluginMetric):
         self.top_k = top_k
 
     def __str__(self):
-        return "Topk_" + str(self.top_k) + "_Acc_MB"
+        return f"Topk_{str(self.top_k)}_Acc_MB"
 
 
 class EpochTopkAccuracy(TopkAccuracyPluginMetric):
@@ -232,7 +227,7 @@ class EpochTopkAccuracy(TopkAccuracyPluginMetric):
         self.top_k = top_k
 
     def __str__(self):
-        return "Topk_" + str(self.top_k) + "_Acc_Epoch"
+        return f"Topk_{str(self.top_k)}_Acc_Epoch"
 
 
 class RunningEpochTopkAccuracy(TopkAccuracyPluginMetric):
@@ -257,7 +252,7 @@ class RunningEpochTopkAccuracy(TopkAccuracyPluginMetric):
         self.top_k = top_k
 
     def __str__(self):
-        return "Topk_" + str(self.top_k) + "_Acc_Epoch"
+        return f"Topk_{str(self.top_k)}_Acc_Epoch"
 
 
 class ExperienceTopkAccuracy(TopkAccuracyPluginMetric):
@@ -280,7 +275,7 @@ class ExperienceTopkAccuracy(TopkAccuracyPluginMetric):
         self.top_k = top_k
 
     def __str__(self):
-        return "Topk_" + str(self.top_k) + "_Acc_Exp"
+        return f"Topk_{str(self.top_k)}_Acc_Exp"
 
 
 class TrainedExperienceTopkAccuracy(TopkAccuracyPluginMetric):
@@ -317,7 +312,7 @@ class TrainedExperienceTopkAccuracy(TopkAccuracyPluginMetric):
             TopkAccuracyPluginMetric.update(self, strategy)
 
     def __str__(self):
-        return "Topk_" + str(self.top_k) + "_Acc_On_Trained_Experiences"
+        return f"Topk_{str(self.top_k)}_Acc_On_Trained_Experiences"
 
 
 class StreamTopkAccuracy(TopkAccuracyPluginMetric):
@@ -337,7 +332,7 @@ class StreamTopkAccuracy(TopkAccuracyPluginMetric):
         self.top_k = top_k
 
     def __str__(self):
-        return "Topk_" + str(self.top_k) + "_Acc_Stream"
+        return f"Topk_{str(self.top_k)}_Acc_Stream"
 
 
 def topk_acc_metrics(

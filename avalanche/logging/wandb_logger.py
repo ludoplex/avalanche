@@ -127,14 +127,14 @@ class WandBLogger(BaseLogger, SupervisedPlugin):
             "config": self.config,
         }
         if self.params:
-            self.init_kwargs.update(self.params)
+            self.init_kwargs |= self.params
 
     def before_run(self):
         if self.wandb is None:
             self.import_wandb()
 
         if self.init_kwargs is None:
-            self.init_kwargs = dict()
+            self.init_kwargs = {}
 
         run_id = self.init_kwargs.get("id", None)
         if run_id is None:
@@ -228,10 +228,10 @@ class WandBLogger(BaseLogger, SupervisedPlugin):
         checkpoint_directory = cwd / self.path
         checkpoint_directory.mkdir(parents=True, exist_ok=True)
 
-        checkpoint_name = "Model_{}".format(experience_id)
-        checkpoint_file_name = checkpoint_name + ".pth"
+        checkpoint_name = f"Model_{experience_id}"
+        checkpoint_file_name = f"{checkpoint_name}.pth"
         checkpoint_path = checkpoint_directory / checkpoint_file_name
-        artifact_name = "Models/" + checkpoint_file_name
+        artifact_name = f"Models/{checkpoint_file_name}"
 
         # Write the checkpoint blob
         with open(checkpoint_path, "wb") as f:
@@ -259,7 +259,7 @@ class WandBLogger(BaseLogger, SupervisedPlugin):
         print("[W&B logger] Resuming from checkpoint...")
         self.__dict__ = state
         if self.init_kwargs is None:
-            self.init_kwargs = dict()
+            self.init_kwargs = {}
         self.init_kwargs["resume"] = "allow"
 
         self.wandb = None

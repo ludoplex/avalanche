@@ -255,11 +255,11 @@ class DynamicOptimizersTests(unittest.TestCase):
         self.assertFalse(self._is_param_in_optimizer(param1, strategy.optimizer))
 
     def get_model(self, multi_task=False):
-        if multi_task:
-            model = MTSimpleMLP(input_size=6, hidden_size=10)
-        else:
-            model = SimpleMLP(input_size=6, hidden_size=10)
-        return model
+        return (
+            MTSimpleMLP(input_size=6, hidden_size=10)
+            if multi_task
+            else SimpleMLP(input_size=6, hidden_size=10)
+        )
 
 
 class DynamicModelsTests(unittest.TestCase):
@@ -580,7 +580,7 @@ class NCMClassifierTest(unittest.TestCase):
             [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]],
             dtype=torch.float,
         )
-        class_means_dict = {i: el for i, el in enumerate(class_means)}
+        class_means_dict = dict(enumerate(class_means))
 
         mb_x = torch.tensor(
             [[4, 3, 2, 1], [3, 2, 4, 1]],
@@ -600,7 +600,7 @@ class NCMClassifierTest(unittest.TestCase):
             [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]],
             dtype=torch.float,
         )
-        class_means_dict = {i: el for i, el in enumerate(class_means)}
+        class_means_dict = dict(enumerate(class_means))
         classifier = NCMClassifier()
         classifier.update_class_means_dict(class_means_dict)
         assert classifier.class_means.shape == (3, 4)
@@ -628,14 +628,14 @@ class NCMClassifierTest(unittest.TestCase):
             [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]],
             dtype=torch.float,
         )
-        class_means_dict = {i: el for i, el in enumerate(class_means)}
+        class_means_dict = dict(enumerate(class_means))
         classifier = NCMClassifier()
         classifier.update_class_means_dict(class_means_dict)
         class_means = torch.tensor(
             [[2, 0, 0, 0], [2, 1, 0, 0], [2, 0, 1, 0]],
             dtype=torch.float,
         )
-        new_dict = {i: el for i, el in enumerate(class_means)}
+        new_dict = dict(enumerate(class_means))
         classifier.replace_class_means_dict(new_dict)
         assert (classifier.class_means[:, 0] == 2).all()
 

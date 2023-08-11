@@ -79,7 +79,6 @@ class RARPlugin(SupervisedPlugin):
 
         self.use_adversarial_replay = use_adversarial_replay
 
-        self.beta_coef = beta_coef
         # For Split-CIFAR10: 0.5, 0.1, 0.075 - mem size 200, 500 , 1000
         # Split-CIFAR100 and Split-miniImageNet: 0.4
 
@@ -90,9 +89,7 @@ class RARPlugin(SupervisedPlugin):
 
         self.replay_loader = None
 
-        if not self.use_adversarial_replay:
-            self.beta_coef = 0
-
+        self.beta_coef = 0 if not self.use_adversarial_replay else beta_coef
         if storage_policy is not None:  # Use other storage policy
             self.storage_policy = storage_policy
             assert storage_policy.max_size == self.mem_size
@@ -234,7 +231,7 @@ class RARPlugin(SupervisedPlugin):
         pert_out = input
         alpha = self.epsilon_fgsm / self.iter_fgsm
         g = 0
-        for i in range(self.iter_fgsm - 1):
+        for _ in range(self.iter_fgsm - 1):
             g = self.decay_factor_fgsm * g + data_grad / torch.norm(data_grad, p=1)
             pert_out = pert_out + alpha * torch.sign(g)
             pert_out = torch.clamp(pert_out, 0, 1)

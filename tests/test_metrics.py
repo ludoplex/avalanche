@@ -575,7 +575,7 @@ class GeneralMetricTests(unittest.TestCase):
         "This test fails with github action for unknown reasons",
     )
     def test_cumulative_accuracy(self):
-        classes_splits = {0: {0, 1}, 1: {i for i in range(self.input_size)}}
+        classes_splits = {0: {0, 1}, 1: set(range(self.input_size))}
 
         metric = CumulativeAccuracy()
         self.assertDictEqual(metric.result(), {})

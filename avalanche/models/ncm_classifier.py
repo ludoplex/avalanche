@@ -106,7 +106,7 @@ class NCMClassifier(DynamicModule):
         assert isinstance(class_means_dict, dict), (
             "class_means_dict must be a dictionary mapping class_id " "to mean vector"
         )
-        for k, v in class_means_dict.items():
+        for k in class_means_dict:
             if k not in self.class_means_dict or (self.class_means_dict[k] == 0).all():
                 self.class_means_dict[k] = class_means_dict[k].clone()
             else:

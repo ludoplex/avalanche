@@ -50,16 +50,16 @@ class RWalkPlugin(SupervisedPlugin):
         self.delta_t = delta_t
 
         # Information computed every delta_t
-        self.checkpoint_params: Dict[str, ParamData] = dict()
-        self.checkpoint_loss: Dict[str, ParamData] = dict()
+        self.checkpoint_params: Dict[str, ParamData] = {}
+        self.checkpoint_loss: Dict[str, ParamData] = {}
 
         # Partial scores (s_t1^t2) computed incrementally every delta_t
-        self.checkpoint_scores: Dict[str, ParamData] = dict()
+        self.checkpoint_scores: Dict[str, ParamData] = {}
 
         # Information stored at the beginning of every iteration
-        self.iter_grad: Dict[str, ParamData] = dict()
+        self.iter_grad: Dict[str, ParamData] = {}
         self.iter_importance: Optional[Dict[str, ParamData]] = None
-        self.iter_params: Dict[str, ParamData] = dict()
+        self.iter_params: Dict[str, ParamData] = {}
 
         # Information stored at the end of every experience (t_k in the paper)
         self.exp_scores: Optional[Dict[str, ParamData]] = None

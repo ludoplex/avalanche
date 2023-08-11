@@ -142,9 +142,7 @@ def EndlessCLSim(
             make_classification_dataset(dataset=eval_data, task_labels=task_order[i])
         )
 
-    scenario_obj = dataset_benchmark(train_datasets, eval_datasets)
-
-    return scenario_obj
+    return dataset_benchmark(train_datasets, eval_datasets)
 
 
 __all__ = ["EndlessCLSim"]
@@ -171,7 +169,7 @@ if __name__ == "__main__":
         "training experiences.",
     )
 
-    for i, exp in enumerate(scenario_obj.train_stream):
+    for exp in scenario_obj.train_stream:
         dataset, t = exp.dataset, exp.task_label
         print(dataset, t)
         print(len(dataset))
@@ -187,7 +185,7 @@ if __name__ == "__main__":
             print("T tensor:", other[0].shape)
 
         img = ToPILImage()(x[0])
-        plt.title("Experience: " + str(exp.current_experience))
+        plt.title(f"Experience: {str(exp.current_experience)}")
         plt.imshow(img)
         # plt.show()
         break

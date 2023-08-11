@@ -4,7 +4,7 @@ import warnings
 import torch
 
 if parse(torch.__version__) < parse("2.0.0"):
-    warnings.warn(f"LaMAML requires torch >= 2.0.0.")
+    warnings.warn("LaMAML requires torch >= 2.0.0.")
 
 import torch
 import torch.nn as nn
@@ -191,15 +191,12 @@ class LaMAML(SupervisedMetaLearningTemplate):
             for g in grads
         ]
 
-        # New fast parameters
-        new_fast_params = {
+        return {
             n: param - alpha * grad if grad is not None else param
             for ((n, param), alpha, grad) in zip(
                 fast_params.items(), self.alpha_params.parameters(), grads
             )
         }
-
-        return new_fast_params
 
     def _inner_updates(self, **kwargs):
         # Make a copy of model parameters for fast updates
@@ -314,13 +311,7 @@ class Buffer:
 
 
 def init_kaiming_normal(m):
-    if isinstance(m, nn.Conv2d):
-        torch.nn.init.constant_(m.weight.data, 1.0)
-        torch.nn.init.kaiming_normal_(m.weight.data)
-        if m.bias is not None:
-            m.bias.data.zero_()
-
-    elif isinstance(m, nn.Linear):
+    if isinstance(m, (nn.Conv2d, nn.Linear)):
         torch.nn.init.constant_(m.weight.data, 1.0)
         torch.nn.init.kaiming_normal_(m.weight.data)
         if m.bias is not None:

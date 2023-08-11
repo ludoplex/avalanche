@@ -65,7 +65,7 @@ class CumulativeAccuracy(Metric[Dict[int, float]]):
                 self._mean_accuracy[t]
 
             # Only compute Accuracy for classes that are in classes set
-            if len(set(true_y.cpu().numpy()).intersection(classes)) == 0:
+            if not set(true_y.cpu().numpy()).intersection(classes):
                 # Here this assumes that true_y is only
                 # coming from the same classes split,
                 # this is a shortcut
@@ -212,18 +212,17 @@ class CumulativeForgettingPluginMetric(
     def before_training_exp(self, strategy, **kwargs):
         super().before_training_exp(strategy, **kwargs)
         if isinstance(strategy.experience, OnlineCLExperience):
-            if strategy.experience.access_task_boundaries:
-                new_classes = set(
-                    strategy.experience.origin_experience.classes_in_this_experience
-                )
-                task_id = strategy.experience.origin_experience.current_experience
-            else:
+            if not strategy.experience.access_task_boundaries:
                 raise AttributeError(
                     "Online Scenario has to allow "
                     "access to task boundaries for"
                     " the Cumulative Accuracy Metric"
                     " to be computed"
                 )
+            new_classes = set(
+                strategy.experience.origin_experience.classes_in_this_experience
+            )
+            task_id = strategy.experience.origin_experience.current_experience
         else:
             new_classes = set(strategy.experience.classes_in_this_experience)
             task_id = strategy.experience.current_experience
@@ -242,8 +241,7 @@ class CumulativeForgettingPluginMetric(
         self._metric.reset()
 
     def result(self) -> Dict[int, float]:
-        forgetting = self._compute_forgetting()
-        return forgetting
+        return self._compute_forgetting()
 
     def _package_result(self, strategy: "SupervisedTemplate") -> "MetricResult":
         assert strategy.experience is not None
@@ -278,11 +276,7 @@ class CumulativeForgettingPluginMetric(
             else:
                 self.last[t] = item
 
-        forgetting = {}
-        for k, v in self.last.items():
-            forgetting[k] = self.initial[k] - self.last[k]
-
-        return forgetting
+        return {k: self.initial[k] - self.last[k] for k, v in self.last.items()}
 
     def __str__(self):
         return "CumulativeForgetting"

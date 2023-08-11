@@ -116,16 +116,16 @@ def CLEAR(
         "Must specify a evaluation protocol from " f"{EVALUATION_PROTOCOLS}"
     )
 
-    if evaluation_protocol == "streaming":
+    if evaluation_protocol == "iid":
+        assert seed in SEED_LIST, "No seed for train/test split"
+        train_split = "train"
+        test_split = "test"
+    elif evaluation_protocol == "streaming":
         assert seed is None, (
             "Seed for train/test split is not required " "under streaming protocol"
         )
         train_split = "all"
         test_split = "all"
-    elif evaluation_protocol == "iid":
-        assert seed in SEED_LIST, "No seed for train/test split"
-        train_split = "train"
-        test_split = "test"
     else:
         raise NotImplementedError()
 
@@ -152,7 +152,7 @@ def CLEAR(
         test_samples_paths = clear_dataset_test.get_paths_and_targets(
             root_appended=True
         )
-        benchmark_obj = create_generic_benchmark_from_paths(
+        return create_generic_benchmark_from_paths(
             train_samples_paths,
             test_samples_paths,
             task_labels=list(range(len(train_samples_paths))),
@@ -180,7 +180,7 @@ def CLEAR(
         train_samples = clear_dataset_train.tensors_and_targets
         test_samples = clear_dataset_test.tensors_and_targets
 
-        benchmark_obj = create_generic_benchmark_from_tensor_lists(
+        return create_generic_benchmark_from_tensor_lists(
             train_samples,
             test_samples,
             task_labels=list(range(len(train_samples))),
@@ -188,8 +188,6 @@ def CLEAR(
             train_transform=train_transform,
             eval_transform=eval_transform,
         )
-
-    return benchmark_obj
 
 
 class CLEARMetric:
@@ -216,14 +214,13 @@ class CLEARMetric:
         :return: A dictionary containing these 5 metrics
         """
         assert matrix.shape[0] == matrix.shape[1]
-        metrics_dict = {
+        return {
             "in_domain": self.in_domain(matrix),
             "next_domain": self.next_domain(matrix),
             "accuracy": self.accuracy(matrix),
             "forward_transfer": self.forward_transfer(matrix),
             "backward_transfer": self.backward_transfer(matrix),
         }
-        return metrics_dict
 
     def accuracy(self, matrix):
         """
@@ -295,11 +292,7 @@ if __name__ == "__main__":
 
     for p in EVALUATION_PROTOCOLS:
         seed_list: Sequence[Optional[int]]
-        if p == "streaming":
-            seed_list = [None]
-        else:
-            seed_list = SEED_LIST
-
+        seed_list = [None] if p == "streaming" else SEED_LIST
         for f in [None] + CLEAR_FEATURE_TYPES[data_name]:
             t = transform if f is None else None
             for seed in seed_list:

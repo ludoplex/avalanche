@@ -140,7 +140,7 @@ def main(args):
 
     # TRAINING LOOP
     print("Starting experiment...")
-    for i, experience in enumerate(benchmark.train_stream):
+    for experience in benchmark.train_stream:
         print("Start of experience: ", experience.current_experience)
         print("Train dataset contains", len(experience.dataset), "instances")
 
@@ -154,31 +154,30 @@ def main(args):
 def obtain_base_model(segmentation: bool):
     torchvision_is_old_version = parse(torch.__version__) < parse("0.13")
 
-    pretrain_argument = dict()
+    pretrain_argument = {}
 
     if torchvision_is_old_version:
         pretrain_argument["pretrained"] = True
+    elif segmentation:
+        pretrain_argument[
+            "weights"
+        ] = (
+            torchvision.models.detection.mask_rcnn.MaskRCNN_ResNet50_FPN_Weights.DEFAULT
+        )
     else:
-        if segmentation:
-            pretrain_argument[
-                "weights"
-            ] = (
-                torchvision.models.detection.mask_rcnn.MaskRCNN_ResNet50_FPN_Weights.DEFAULT
-            )
-        else:
-            pretrain_argument[
-                "weights"
-            ] = (
-                torchvision.models.detection.faster_rcnn.FasterRCNN_ResNet50_FPN_Weights.DEFAULT
-            )
+        pretrain_argument[
+            "weights"
+        ] = (
+            torchvision.models.detection.faster_rcnn.FasterRCNN_ResNet50_FPN_Weights.DEFAULT
+        )
 
-    if segmentation:
-        model = torchvision.models.detection.maskrcnn_resnet50_fpn(**pretrain_argument)
-    else:
-        model = torchvision.models.detection.fasterrcnn_resnet50_fpn(
+    return (
+        torchvision.models.detection.maskrcnn_resnet50_fpn(**pretrain_argument)
+        if segmentation
+        else torchvision.models.detection.fasterrcnn_resnet50_fpn(
             **pretrain_argument
         )
-    return model
+    )
 
 
 def split_penn_fudan(
@@ -237,11 +236,7 @@ def make_penn_fudan_metrics(detection_only=True):
     :return: The detection metrics for the Penn-Fudan dataset.
     """
 
-    if detection_only:
-        iou_types = ["bbox"]
-    else:
-        iou_types = ["bbox", "segm"]
-
+    iou_types = ["bbox"] if detection_only else ["bbox", "segm"]
     return DetectionMetrics(
         iou_types=iou_types, default_to_coco=True, summarize_to_stdout=True
     )

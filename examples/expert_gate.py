@@ -86,7 +86,7 @@ def build_scenario(mnist=False):
             ]
         )
 
-        scenario = get_custom_benchmark(
+        return get_custom_benchmark(
             use_task_labels=True,
             train_transform=CustomDataAlexTransform,
             eval_transform=CustomDataAlexTransform,
@@ -102,14 +102,12 @@ def build_scenario(mnist=False):
         )
 
         # Note: Must provide task ID for training
-        scenario = SplitMNIST(
+        return SplitMNIST(
             n_experiences=5,
             return_task_id=True,
             train_transform=MNISTAlexTransform,
             eval_transform=MNISTAlexTransform,
         )
-
-    return scenario
 
 
 def get_custom_benchmark(
@@ -136,7 +134,7 @@ def get_custom_benchmark(
 
     train_dataset = TensorDataset(train_X, train_y)
     test_dataset = TensorDataset(test_X, test_y)
-    my_nc_benchmark = nc_benchmark(
+    return nc_benchmark(
         train_dataset,
         test_dataset,
         5,
@@ -145,7 +143,6 @@ def get_custom_benchmark(
         train_transform=train_transform,
         eval_transform=eval_transform,
     )
-    return my_nc_benchmark
 
 
 if __name__ == "__main__":

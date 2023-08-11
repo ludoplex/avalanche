@@ -83,7 +83,7 @@ class MASPlugin(SupervisedPlugin):
 
         for _, batch in enumerate(dataloader):
             # Get batch
-            if len(batch) == 2 or len(batch) == 3:
+            if len(batch) in {2, 3}:
                 x, _, t = batch[0], batch[1], batch[-1]
             else:
                 raise ValueError("Batch size is not valid")
@@ -109,8 +109,8 @@ class MASPlugin(SupervisedPlugin):
                         importance[name].data += param.grad.abs()
 
         # Normalize importance
-        for k in importance.keys():
-            importance[k].data /= float(len(dataloader))
+        for v in importance.values():
+            v.data /= float(len(dataloader))
 
         return importance
 
@@ -159,7 +159,6 @@ class MASPlugin(SupervisedPlugin):
 
         # Update importance
         for name in curr_importance.keys():
-            new_shape = curr_importance[name].data.shape
             if name not in self.importance:
                 self.importance[name] = ParamData(
                     name,
@@ -168,6 +167,7 @@ class MASPlugin(SupervisedPlugin):
                     init_tensor=curr_importance[name].data.clone(),
                 )
             else:
+                new_shape = curr_importance[name].data.shape
                 self.importance[name].data = (
                     self.alpha * self.importance[name].expand(new_shape)
                     + (1 - self.alpha) * curr_importance[name].data

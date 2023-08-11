@@ -35,11 +35,7 @@ def _recreate_pytorch_device(*args):
 def _save_pytorch_device(pickler, obj: torch.device):
     has_index = obj.index is not None
     reduction: Union[Tuple[str, int], Tuple[str]]
-    if has_index:
-        reduction = (obj.type, obj.index)
-    else:
-        reduction = (obj.type,)
-
+    reduction = (obj.type, obj.index) if has_index else (obj.type, )
     pickler.save_reduce(_recreate_pytorch_device, reduction, obj=obj)
 
 

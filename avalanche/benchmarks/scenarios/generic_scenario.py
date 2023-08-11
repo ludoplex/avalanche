@@ -196,24 +196,23 @@ class CLExperience:
         Check that ExperienceAttribute are available in train/eval mode.
         """
         v = super().__getattribute__(item)
-        if isinstance(v, ExperienceAttribute):
-            if not self.are_attributes_masked:
-                return v.value
-            elif self._exp_mode == ExperienceMode.TRAIN and v.use_in_train:
-                return v.value
-            elif self._exp_mode == ExperienceMode.EVAL and v.use_in_eval:
-                return v.value
-            elif self._exp_mode == ExperienceMode.LOGGING:
-                return v.value
-            else:
-                mode = "train" if self._exp_mode == ExperienceMode.TRAIN else "eval"
-                se = (
-                    f"Attribute {item} is not available for the experience "
-                    f"in {mode} mode."
-                )
-                raise MaskedAttributeError(se)
-        else:
+        if not isinstance(v, ExperienceAttribute):
             return v
+        if not self.are_attributes_masked:
+            return v.value
+        elif self._exp_mode == ExperienceMode.TRAIN and v.use_in_train:
+            return v.value
+        elif self._exp_mode == ExperienceMode.EVAL and v.use_in_eval:
+            return v.value
+        elif self._exp_mode == ExperienceMode.LOGGING:
+            return v.value
+        else:
+            mode = "train" if self._exp_mode == ExperienceMode.TRAIN else "eval"
+            se = (
+                f"Attribute {item} is not available for the experience "
+                f"in {mode} mode."
+            )
+            raise MaskedAttributeError(se)
 
     def __setattr__(self, name, value):
         try:
@@ -221,13 +220,12 @@ class CLExperience:
         except KeyError:
             return super().__setattr__(name, value)
 
-        if isinstance(v, ExperienceAttribute):
-            if isinstance(value, ExperienceAttribute):
-                super().__setattr__(name, value)
-            else:
-                v.value = value
-        else:
+        if not isinstance(v, ExperienceAttribute):
             return super().__setattr__(name, value)
+        if isinstance(value, ExperienceAttribute):
+            super().__setattr__(name, value)
+        else:
+            v.value = value
 
     def _as_attributes(self, *fields: str, use_in_train=False, use_in_eval=False):
         """
@@ -590,8 +588,7 @@ class SequenceCLStream(SizedCLStream[TCLExperience], Sequence[TCLExperience], AB
     def __iter__(self) -> Iterator[TCLExperience]:
         exp: TCLExperience
         for i in range(len(self)):
-            exp = self[i]
-            yield exp
+            yield self[i]
 
     @overload
     def __getitem__(self, item: int) -> TCLExperience:
@@ -609,7 +606,7 @@ class SequenceCLStream(SizedCLStream[TCLExperience], Sequence[TCLExperience], AB
         if isinstance(item, (int, np.integer)):
             item = int(item)
             if item >= len(self):
-                raise IndexError("Experience index out of bounds" + str(int(item)))
+                raise IndexError(f"Experience index out of bounds{item}")
 
             curr_exp = item if self.slice_ids is None else self.slice_ids[item]
 
@@ -628,10 +625,7 @@ class SequenceCLStream(SizedCLStream[TCLExperience], Sequence[TCLExperience], AB
 
         :return: The number of experiences in this stream.
         """
-        if self.slice_ids is not None:
-            return len(self.slice_ids)
-        else:
-            return self._full_length()
+        return self._full_length() if self.slice_ids is None else len(self.slice_ids)
 
     def _forward_slice(
         self, *slices: Union[None, slice, Iterable[int]]
@@ -650,10 +644,7 @@ class SequenceCLStream(SizedCLStream[TCLExperience], Sequence[TCLExperience], AB
             new_indices = [indices[x] for x in slice_indices]
             indices = new_indices
 
-        if any_slice:
-            return indices
-        else:
-            return None  # No slicing
+        return indices if any_slice else None
 
     @abstractmethod
     def _full_length(self) -> int:
@@ -764,11 +755,11 @@ class CLScenario(Generic[TCLStream]):
 
         :param streams: a list of streams.
         """
-        self._streams: Dict[str, TCLStream] = dict()
+        self._streams: Dict[str, TCLStream] = {}
         for s in streams:
             self._streams[s.name] = s
         for s in streams:
-            self.__dict__[s.name + "_stream"] = s
+            self.__dict__[f"{s.name}_stream"] = s
 
     @property
     def streams(self):

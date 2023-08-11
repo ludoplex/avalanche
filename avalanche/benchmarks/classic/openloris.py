@@ -108,14 +108,12 @@ def OpenLORIS(
     # Use the root produced by the dataset implementation
     dataset_root = dataset.root
 
-    filelists_bp = fac2dirs[factor] + "/"
-    train_failists_paths = []
-    for i in range(nbatch[factor]):
-        train_failists_paths.append(
-            dataset_root / filelists_bp / ("train_batch_" + str(i).zfill(2) + ".txt")
-        )
-
-    factor_obj = create_generic_benchmark_from_filelists(
+    filelists_bp = f"{fac2dirs[factor]}/"
+    train_failists_paths = [
+        dataset_root / filelists_bp / f"train_batch_{str(i).zfill(2)}.txt"
+        for i in range(nbatch[factor])
+    ]
+    return create_generic_benchmark_from_filelists(
         dataset_root,
         train_failists_paths,
         [dataset_root / filelists_bp / "test.txt"],
@@ -124,8 +122,6 @@ def OpenLORIS(
         train_transform=train_transform,
         eval_transform=eval_transform,
     )
-
-    return factor_obj
 
 
 __all__ = ["OpenLORIS"]
